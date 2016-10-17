@@ -8,9 +8,7 @@ SPORT=30001
 DPORT=30002
 
 for l in sys.stdin:
-    l=l.strip()
-    sl=l.split(" ")
-    for word in sl:
+    for word in l.strip().split(" "):
         p = IP(dst=HOST)/UDP(sport=SPORT, dport=DPORT)/Raw(word)
         send(p)
         print "\"{}\"\n".format(word)
