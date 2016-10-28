@@ -1,0 +1,530 @@
+{
+    "header_types": [
+        {
+            "name": "standard_metadata_t",
+            "id": 0,
+            "fields": [
+                [
+                    "ingress_port",
+                    9
+                ],
+                [
+                    "packet_length",
+                    32
+                ],
+                [
+                    "egress_spec",
+                    9
+                ],
+                [
+                    "egress_port",
+                    9
+                ],
+                [
+                    "egress_instance",
+                    32
+                ],
+                [
+                    "instance_type",
+                    32
+                ],
+                [
+                    "clone_spec",
+                    32
+                ],
+                [
+                    "_padding",
+                    5
+                ]
+            ],
+            "length_exp": null,
+            "max_length": null
+        },
+        {
+            "name": "word_header_t",
+            "id": 1,
+            "fields": [
+                [
+                    "preamble",
+                    64
+                ],
+                [
+                    "wordEnc",
+                    40
+                ],
+                [
+                    "wordLen",
+                    8
+                ],
+                [
+                    "flags",
+                    8
+                ],
+                [
+                    "port",
+                    8
+                ]
+            ],
+            "length_exp": null,
+            "max_length": null
+        },
+        {
+            "name": "intrinsic_metadata_t",
+            "id": 2,
+            "fields": [
+                [
+                    "resubmit_flag",
+                    8
+                ]
+            ],
+            "length_exp": null,
+            "max_length": null
+        },
+        {
+            "name": "ingress_metadata_t",
+            "id": 3,
+            "fields": [
+                [
+                    "dst_port_number",
+                    8
+                ],
+                [
+                    "word_hashed_index",
+                    4
+                ],
+                [
+                    "word_current_counter",
+                    32
+                ],
+                [
+                    "word_index_word",
+                    5400
+                ],
+                [
+                    "word_index_counter",
+                    4320
+                ],
+                [
+                    "word_map_representation",
+                    5400
+                ],
+                [
+                    "word_counter_representation",
+                    4320
+                ],
+                [
+                    "word_pointer_current_value",
+                    4
+                ]
+            ],
+            "length_exp": null,
+            "max_length": null
+        }
+    ],
+    "headers": [
+        {
+            "name": "standard_metadata",
+            "id": 0,
+            "header_type": "standard_metadata_t",
+            "metadata": true
+        },
+        {
+            "name": "word_header",
+            "id": 1,
+            "header_type": "word_header_t",
+            "metadata": false
+        },
+        {
+            "name": "intrinsic_metadata",
+            "id": 2,
+            "header_type": "intrinsic_metadata_t",
+            "metadata": true
+        },
+        {
+            "name": "ingress_metadata",
+            "id": 3,
+            "header_type": "ingress_metadata_t",
+            "metadata": true
+        }
+    ],
+    "header_stacks": [],
+    "parsers": [
+        {
+            "name": "parser",
+            "id": 0,
+            "init_state": "start",
+            "parse_states": [
+                {
+                    "name": "start",
+                    "id": 0,
+                    "parser_ops": [],
+                    "transition_key": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "instance_type"
+                            ]
+                        }
+                    ],
+                    "transitions": [
+                        {
+                            "value": "0x00000000",
+                            "mask": null,
+                            "next_state": "parse_protocol"
+                        },
+                        {
+                            "value": "default",
+                            "mask": null,
+                            "next_state": null
+                        }
+                    ]
+                },
+                {
+                    "name": "parse_protocol",
+                    "id": 1,
+                    "parser_ops": [],
+                    "transition_key": [
+                        {
+                            "type": "lookahead",
+                            "value": [
+                                0,
+                                64
+                            ]
+                        }
+                    ],
+                    "transitions": [
+                        {
+                            "value": "0x0000000000000000",
+                            "mask": null,
+                            "next_state": "parse_word"
+                        },
+                        {
+                            "value": "default",
+                            "mask": null,
+                            "next_state": null
+                        }
+                    ]
+                },
+                {
+                    "name": "parse_word",
+                    "id": 2,
+                    "parser_ops": [
+                        {
+                            "op": "extract",
+                            "parameters": [
+                                {
+                                    "type": "regular",
+                                    "value": "word_header"
+                                }
+                            ]
+                        }
+                    ],
+                    "transition_key": [],
+                    "transitions": [
+                        {
+                            "value": "default",
+                            "mask": null,
+                            "next_state": null
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "deparsers": [
+        {
+            "name": "deparser",
+            "id": 0,
+            "order": [
+                "word_header"
+            ]
+        }
+    ],
+    "meter_arrays": [],
+    "actions": [
+        {
+            "name": "resubmit_action",
+            "id": 0,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "intrinsic_metadata",
+                                "resubmit_flag"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x1"
+                        }
+                    ]
+                },
+                {
+                    "op": "resubmit",
+                    "parameters": [
+                        {
+                            "type": "hexstr",
+                            "value": "0x1"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "set_port",
+            "id": 1,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_spec"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x3"
+                        }
+                    ]
+                },
+                {
+                    "op": "add_header",
+                    "parameters": [
+                        {
+                            "type": "header",
+                            "value": "word_header"
+                        }
+                    ]
+                },
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "word_header",
+                                "flags"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x1"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "pipelines": [
+        {
+            "name": "ingress",
+            "id": 0,
+            "init_table": "_condition_0",
+            "tables": [
+                {
+                    "name": "resubmit_table",
+                    "id": 0,
+                    "match_type": "exact",
+                    "type": "simple",
+                    "max_size": 16384,
+                    "with_counters": false,
+                    "direct_meters": null,
+                    "support_timeout": false,
+                    "key": [],
+                    "actions": [
+                        "resubmit_action"
+                    ],
+                    "next_tables": {
+                        "resubmit_action": null
+                    },
+                    "base_default_next": null
+                },
+                {
+                    "name": "set_port_table",
+                    "id": 1,
+                    "match_type": "exact",
+                    "type": "simple",
+                    "max_size": 16384,
+                    "with_counters": false,
+                    "direct_meters": null,
+                    "support_timeout": false,
+                    "key": [],
+                    "actions": [
+                        "set_port"
+                    ],
+                    "next_tables": {
+                        "set_port": null
+                    },
+                    "base_default_next": null
+                }
+            ],
+            "conditionals": [
+                {
+                    "name": "_condition_0",
+                    "id": 0,
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "op": "!=",
+                            "left": {
+                                "type": "field",
+                                "value": [
+                                    "standard_metadata",
+                                    "instance_type"
+                                ]
+                            },
+                            "right": {
+                                "type": "hexstr",
+                                "value": "0x0"
+                            }
+                        }
+                    },
+                    "true_next": "set_port_table",
+                    "false_next": "_condition_1"
+                },
+                {
+                    "name": "_condition_1",
+                    "id": 1,
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "op": "and",
+                            "left": {
+                                "type": "expression",
+                                "value": {
+                                    "op": "valid",
+                                    "left": null,
+                                    "right": {
+                                        "type": "header",
+                                        "value": "word_header"
+                                    }
+                                }
+                            },
+                            "right": {
+                                "type": "expression",
+                                "value": {
+                                    "op": "==",
+                                    "left": {
+                                        "type": "field",
+                                        "value": [
+                                            "word_header",
+                                            "flags"
+                                        ]
+                                    },
+                                    "right": {
+                                        "type": "hexstr",
+                                        "value": "0x1"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "true_next": "resubmit_table",
+                    "false_next": null
+                }
+            ]
+        },
+        {
+            "name": "egress",
+            "id": 1,
+            "init_table": null,
+            "tables": [],
+            "conditionals": []
+        }
+    ],
+    "calculations": [],
+    "checksums": [],
+    "learn_lists": [],
+    "field_lists": [
+        {
+            "id": 1,
+            "name": "resubmit_field_list",
+            "elements": [
+                {
+                    "type": "field",
+                    "value": [
+                        "ingress_metadata",
+                        "dst_port_number"
+                    ]
+                },
+                {
+                    "type": "field",
+                    "value": [
+                        "ingress_metadata",
+                        "word_map_representation"
+                    ]
+                },
+                {
+                    "type": "field",
+                    "value": [
+                        "ingress_metadata",
+                        "word_counter_representation"
+                    ]
+                },
+                {
+                    "type": "field",
+                    "value": [
+                        "ingress_metadata",
+                        "word_pointer_current_value"
+                    ]
+                },
+                {
+                    "type": "field",
+                    "value": [
+                        "intrinsic_metadata",
+                        "resubmit_flag"
+                    ]
+                }
+            ]
+        }
+    ],
+    "counter_arrays": [],
+    "register_arrays": [],
+    "force_arith": [
+        [
+            "standard_metadata",
+            "ingress_port"
+        ],
+        [
+            "standard_metadata",
+            "packet_length"
+        ],
+        [
+            "standard_metadata",
+            "egress_spec"
+        ],
+        [
+            "standard_metadata",
+            "egress_port"
+        ],
+        [
+            "standard_metadata",
+            "egress_instance"
+        ],
+        [
+            "standard_metadata",
+            "instance_type"
+        ],
+        [
+            "standard_metadata",
+            "clone_spec"
+        ],
+        [
+            "standard_metadata",
+            "_padding"
+        ],
+        [
+            "intrinsic_metadata",
+            "resubmit_flag"
+        ]
+    ]
+}
