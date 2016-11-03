@@ -14,28 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "includes/headers.p4"
+#include "includes/headers_mapper.p4"
 #include "includes/parser.p4"
 
 
-#define NUM_OF_BITS_FOR_INDEX 16 
+#define CLONE_ID 255
+#define NUM_OF_BITS_FOR_INDEX 4
 
-// locally a mapper should only have ports within the range [0, 3] -- 0 - input port, [1, 3] - output ports
-#define PORT_INDEX_BASE 1
+// locally a mapper should only have ports within the range [1, 4] -- 1 - input port, [2, 4] - output ports
+#define PORT_INDEX_BASE 2
 #define PORT_INDEX_SIZE 3
 
-header_type egress_metadata_t {
-  fields {
-     port_number : NUM_OF_BITS_FOR_INDEX;
-  }  
-}
-
-metadata egress_metadata_t egress_metadata {port_number : PORT_INDEX_BASE;};
-
-
-field_list egress_port_number {
-  egress_metadata.port_number;
-}
 
 field_list word_hashing_fields { 
    word_header.wordEnc;
@@ -51,7 +40,7 @@ field_list_calculation word_hashing_spec {
 
 
 action set_port() {
- // just hash the word and set port number in the range [1, 3]
+ // just hash the word and set port number in the range [2, 4]
  modify_field_with_hash_based_offset(standard_metadata.egress_spec, PORT_INDEX_BASE, 
                                      word_hashing_spec, PORT_INDEX_SIZE); 
 }
@@ -63,20 +52,15 @@ table set_port_table {
 }
 
 
-action set_first_request() {
-  modify_field(standard_metadata.egress_spec, PORT_INDEX_BASE); // start with the first port
-}
-
-table set_first_request_table {
-  actions {
-    set_first_request;
-  }
-}
-
 action send_to_all() {
-  add_to_field(egress_metadata.port_number, 1); // update for next packet
-  modify_field(standard_metadata.egress_spec, egress_metadata.port_number);
-  clone_egress_pkt_to_egress(10, egress_port_number);
+  // hard-code forwarding for now as some primitive actions do not work.
+  modify_field(standard_metadata.egress_spec, PORT_INDEX_BASE);
+  clone_ingress_pkt_to_egress(CLONE_ID);
+
+  add_to_field(standard_metadata.egress_spec, 1); // update for next packet
+  clone_ingress_pkt_to_egress(CLONE_ID);
+
+  add_to_field(standard_metadata.egress_spec, 1); // update for next packet
 }
 
 table send_to_all_table {
@@ -88,23 +72,15 @@ table send_to_all_table {
 
 control ingress {
   if(valid(word_header)) { // if the header successfully parsed -- mappers have to forward all packets, either flags = 0x00 or flags = 0x01 
-    if(word_header.flags == 0x00 or word_header.wordEnc != 0) // a word is sent. Forward to a particular port
+    if(word_header.flags == 0x00) // a word is sent. Forward to a particular port
     {  
       apply(set_port_table);
     }
     else  // flags set // send to the reducers a request to reduce
     {
-       apply(set_first_request_table);
+       apply(send_to_all_table);
     }
   } 
-}
-
-control egress {
-  if(valid(word_header) and word_header.flags != 0x00 and word_header.wordEnc == 0
-     and egress_metadata.port_number <= PORT_INDEX_SIZE) { // send to all reducers a request to their tables
-    
-       apply(send_to_all_table);
-  }
 }
 
 

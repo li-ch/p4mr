@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "includes/headers.p4"
+#include "includes/headers_reducer.p4"
 #include "includes/parser.p4"
 
 
@@ -561,7 +561,7 @@ action send_map_table() {
 
   /********************************************** End of reading the map *************************************/
   modify_field(map_reduce_header.num_of_words, MAX_NUM_OF_WORDS);
-  modify_field(standard_metadata.egress_spec, 3); // make sure that the port number is 3
+  modify_field(standard_metadata.egress_spec, 4); // make sure that the port number is 4 -- output port
 }
 
 table aggregation_table {
@@ -575,7 +575,7 @@ control ingress {
    // Since resubmit() is not supported, the code only reads all possible values in an action.
    if(valid(word_header))
    {
-     if(word_header.flags == 0x00) // just increment the counter
+     if(word_header.flags == 0x00) // just increment a counter
      {
        apply(word_count_table);
      }
@@ -587,6 +587,3 @@ control ingress {
    }
 }
 
-
-control egress {
-}
