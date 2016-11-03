@@ -1,1 +1,2 @@
-table_set_default set_port_table set_port
+table_set_default set_port_table drop_packet
+table_add set_port_table set_port 0 => 2

@@ -14,27 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "includes/headers.p4"
+#include "includes/headers_mapper.p4"
 #include "includes/parser.p4"
 
 
-#define NUM_OF_BITS_FOR_INDEX 16 
 
-// locally a mapper should only have ports within the range [0, 3] -- 0 - input port, [1, 3] - output ports
-#define PORT_INDEX_BASE 1
+#define CLONE_SPEC_ID 255
+#define NUM_OF_BITS_FOR_INDEX 4
+#define NUM_OF_WORD_TABLE_ENTRIES 16 
+
+// locally a mapper should only have ports within the range [1, 4] -- 1 - input port, [2, 4] - output ports
+// Read commands.txt in mininet_test. The text file sets table entries for forwarding words. 
+#define PORT_INDEX_BASE 2
 #define PORT_INDEX_SIZE 3
 
-header_type egress_metadata_t {
+header_type ingress_metadata_t {
   fields {
      port_number : NUM_OF_BITS_FOR_INDEX;
+     hashed_word : NUM_OF_BITS_FOR_INDEX;
   }  
 }
 
-metadata egress_metadata_t egress_metadata {port_number : PORT_INDEX_BASE;};
+metadata ingress_metadata_t ingress_metadata {port_number : PORT_INDEX_BASE;};
 
 
-field_list egress_port_number {
-  egress_metadata.port_number;
+field_list ingress_port_fields {
+  ingress_metadata;
 }
 
 field_list word_hashing_fields { 
@@ -50,61 +55,73 @@ field_list_calculation word_hashing_spec {
 }
 
 
-action set_port() {
- // just hash the word and set port number in the range [1, 3]
- modify_field_with_hash_based_offset(standard_metadata.egress_spec, PORT_INDEX_BASE, 
-                                     word_hashing_spec, PORT_INDEX_SIZE); 
-}
-
-table set_port_table {
-   actions {
-      set_port;
-   }
+action drop_packet() {
+  drop();
 }
 
 
-action set_first_request() {
-  modify_field(standard_metadata.egress_spec, PORT_INDEX_BASE); // start with the first port
+action hash_word() {
+  modify_field_with_hash_based_offset(standard_metadata.egress_spec, PORT_INDEX_BASE, word_hashing_spec, PORT_INDEX_SIZE); // for determining the port number
 }
 
-table set_first_request_table {
+table hash_packet_table {
   actions {
-    set_first_request;
+     hash_word;
   }
 }
 
+/*action set_port(port) {
+ 
+  modify_field(standard_metadata.egress_spec, port);
+}
+*/
+/*
+table set_port_table {
+   reads {
+      ingress_metadata.hashed_word : exact;  
+   }
+ 
+   actions {
+      set_port;
+      drop_packet;
+   }
+  
+  size : NUM_OF_WORD_TABLE_ENTRIES; 
+}
+*/
+
 action send_to_all() {
-  add_to_field(egress_metadata.port_number, 1); // update for next packet
-  modify_field(standard_metadata.egress_spec, egress_metadata.port_number);
-  clone_egress_pkt_to_egress(10, egress_port_number);
+  // Check if this works. We keep incrementing the egress port number to send data on a port
+  modify_field(standard_metadata.egress_spec, PORT_INDEX_BASE);
+  clone_ingress_pkt_to_egress(CLONE_SPEC_ID);
+  add_to_field(standard_metadata.egress_spec, 1);
+  clone_ingress_pkt_to_egress(CLONE_SPEC_ID);
+  add_to_field(standard_metadata.egress_spec, 1);
+  
 }
 
 table send_to_all_table {
   actions {
-    send_to_all;
+     send_to_all;
   }
 }
- 
+
 
 control ingress {
-  if(valid(word_header)) { // if the header successfully parsed -- mappers have to forward all packets, either flags = 0x00 or flags = 0x01 
-    if(word_header.flags == 0x00 or word_header.wordEnc != 0) // a word is sent. Forward to a particular port
-    {  
-      apply(set_port_table);
-    }
-    else  // flags set // send to the reducers a request to reduce
-    {
-       apply(set_first_request_table);
-    }
-  } 
+ 
+ if(valid(word_header)) { // if the header successfully parsed -- mappers have to forward all packets 
+   if(word_header.flags == 0x00) { // means a word is being sent ==> forward to a reducer
+     apply(hash_packet_table);
+     //apply(set_port_table);
+   }
+   
+   else { // means a request to send maps to the data collector ==> forward to all the reducers
+     apply(send_to_all_table);
+   }   
+
+ }
+ 
 }
 
-control egress {
-  if(valid(word_header) and word_header.flags != 0x00 and word_header.wordEnc == 0
-     and egress_metadata.port_number <= PORT_INDEX_SIZE) { // send to all reducers a request to their tables
-    
-       apply(send_to_all_table);
-  }
-}
 
 

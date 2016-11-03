@@ -1,4 +1,5 @@
-switches 6
+mappers 3
+reducers 3
 hosts 4
 h1 s1
 h2 s2

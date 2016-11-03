@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "includes/headers.p4"
+#include "includes/headers_reducer.p4"
 #include "includes/parser.p4"
 
 
