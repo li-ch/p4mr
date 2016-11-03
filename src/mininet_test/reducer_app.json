@@ -1,0 +1,4023 @@
+{
+    "header_types": [
+        {
+            "name": "standard_metadata_t",
+            "id": 0,
+            "fields": [
+                [
+                    "ingress_port",
+                    9
+                ],
+                [
+                    "packet_length",
+                    32
+                ],
+                [
+                    "egress_spec",
+                    9
+                ],
+                [
+                    "egress_port",
+                    9
+                ],
+                [
+                    "egress_instance",
+                    32
+                ],
+                [
+                    "instance_type",
+                    32
+                ],
+                [
+                    "clone_spec",
+                    32
+                ],
+                [
+                    "_padding",
+                    5
+                ]
+            ],
+            "length_exp": null,
+            "max_length": null
+        },
+        {
+            "name": "word_header_t",
+            "id": 1,
+            "fields": [
+                [
+                    "preamble",
+                    64
+                ],
+                [
+                    "wordEnc",
+                    40
+                ],
+                [
+                    "flags",
+                    8
+                ]
+            ],
+            "length_exp": null,
+            "max_length": null
+        },
+        {
+            "name": "word_map_header_t",
+            "id": 2,
+            "fields": [
+                [
+                    "wordEnc",
+                    640
+                ],
+                [
+                    "count",
+                    512
+                ],
+                [
+                    "num_of_words",
+                    8
+                ]
+            ],
+            "length_exp": null,
+            "max_length": null
+        },
+        {
+            "name": "ingress_metadata_t",
+            "id": 3,
+            "fields": [
+                [
+                    "word_hashed_index",
+                    4
+                ],
+                [
+                    "word_current_counter",
+                    32
+                ],
+                [
+                    "word_index_word",
+                    640
+                ],
+                [
+                    "word_index_counter",
+                    512
+                ],
+                [
+                    "word_map_representation",
+                    640
+                ],
+                [
+                    "word_counter_representation",
+                    512
+                ],
+                [
+                    "_padding",
+                    4
+                ]
+            ],
+            "length_exp": null,
+            "max_length": null
+        }
+    ],
+    "headers": [
+        {
+            "name": "standard_metadata",
+            "id": 0,
+            "header_type": "standard_metadata_t",
+            "metadata": true
+        },
+        {
+            "name": "word_header",
+            "id": 1,
+            "header_type": "word_header_t",
+            "metadata": false
+        },
+        {
+            "name": "ingress_metadata",
+            "id": 2,
+            "header_type": "ingress_metadata_t",
+            "metadata": true
+        },
+        {
+            "name": "map_reduce_header",
+            "id": 3,
+            "header_type": "word_map_header_t",
+            "metadata": false
+        }
+    ],
+    "header_stacks": [],
+    "parsers": [
+        {
+            "name": "parser",
+            "id": 0,
+            "init_state": "start",
+            "parse_states": [
+                {
+                    "name": "start",
+                    "id": 0,
+                    "parser_ops": [],
+                    "transition_key": [
+                        {
+                            "type": "lookahead",
+                            "value": [
+                                0,
+                                64
+                            ]
+                        }
+                    ],
+                    "transitions": [
+                        {
+                            "value": "0x0000000000000000",
+                            "mask": null,
+                            "next_state": "parse_word"
+                        },
+                        {
+                            "value": "default",
+                            "mask": null,
+                            "next_state": null
+                        }
+                    ]
+                },
+                {
+                    "name": "parse_word",
+                    "id": 1,
+                    "parser_ops": [
+                        {
+                            "op": "extract",
+                            "parameters": [
+                                {
+                                    "type": "regular",
+                                    "value": "word_header"
+                                }
+                            ]
+                        }
+                    ],
+                    "transition_key": [],
+                    "transitions": [
+                        {
+                            "value": "default",
+                            "mask": null,
+                            "next_state": null
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "deparsers": [
+        {
+            "name": "deparser",
+            "id": 0,
+            "order": [
+                "word_header"
+            ]
+        }
+    ],
+    "meter_arrays": [],
+    "actions": [
+        {
+            "name": "increment_word_counter",
+            "id": 0,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field_with_hash_based_offset",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_hashed_index"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        },
+                        {
+                            "type": "calculation",
+                            "value": "hash_word_for_index"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x10"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_current_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_hashed_index"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "add_to_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_current_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x1"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_hashed_index"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_current_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_hashed_index"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "word_header",
+                                "wordEnc"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "drop",
+                    "parameters": []
+                }
+            ]
+        },
+        {
+            "name": "send_map_table",
+            "id": 1,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "remove_header",
+                    "parameters": [
+                        {
+                            "type": "header",
+                            "value": "word_header"
+                        }
+                    ]
+                },
+                {
+                    "op": "add_header",
+                    "parameters": [
+                        {
+                            "type": "header",
+                            "value": "map_reduce_header"
+                        }
+                    ]
+                },
+                {
+                    "op": "add_header",
+                    "parameters": [
+                        {
+                            "type": "header",
+                            "value": "word_header"
+                        }
+                    ]
+                },
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "word_header",
+                                "flags"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x1"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x1"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x1"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x1"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x1"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x2"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x2"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x2"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x2"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x3"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x3"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x3"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x3"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x4"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x4"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x4"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x4"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x5"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x5"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x5"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x5"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x6"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x6"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x6"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x6"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x7"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x7"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x7"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x7"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x8"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x8"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x8"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x8"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x9"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x9"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x9"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x9"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xa"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xa"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xa"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xa"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xb"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xb"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xb"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xb"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xc"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xc"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xc"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xc"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xd"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xd"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xd"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xd"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xe"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xe"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x28"
+                        }
+                    ]
+                },
+                {
+                    "op": "shift_left",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x20"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xe"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xe"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xf"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_read",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xf"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_and",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xffffffffff"
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_map_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_word"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "bit_or",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_counter_representation"
+                            ]
+                        },
+                        {
+                            "type": "field",
+                            "value": [
+                                "ingress_metadata",
+                                "word_index_counter"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_value"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xf"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "register_write",
+                    "parameters": [
+                        {
+                            "type": "register_array",
+                            "value": "word_counter"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0xf"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x0"
+                        }
+                    ]
+                },
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "map_reduce_header",
+                                "num_of_words"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x10"
+                        }
+                    ]
+                },
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_spec"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x4"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "pipelines": [
+        {
+            "name": "ingress",
+            "id": 0,
+            "init_table": "_condition_0",
+            "tables": [
+                {
+                    "name": "word_count_table",
+                    "id": 0,
+                    "match_type": "exact",
+                    "type": "simple",
+                    "max_size": 16384,
+                    "with_counters": false,
+                    "direct_meters": null,
+                    "support_timeout": false,
+                    "key": [],
+                    "actions": [
+                        "increment_word_counter"
+                    ],
+                    "next_tables": {
+                        "increment_word_counter": null
+                    },
+                    "base_default_next": null
+                },
+                {
+                    "name": "aggregation_table",
+                    "id": 1,
+                    "match_type": "exact",
+                    "type": "simple",
+                    "max_size": 16384,
+                    "with_counters": false,
+                    "direct_meters": null,
+                    "support_timeout": false,
+                    "key": [],
+                    "actions": [
+                        "send_map_table"
+                    ],
+                    "next_tables": {
+                        "send_map_table": null
+                    },
+                    "base_default_next": null
+                }
+            ],
+            "conditionals": [
+                {
+                    "name": "_condition_0",
+                    "id": 0,
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "op": "valid",
+                            "left": null,
+                            "right": {
+                                "type": "header",
+                                "value": "word_header"
+                            }
+                        }
+                    },
+                    "true_next": "_condition_1",
+                    "false_next": null
+                },
+                {
+                    "name": "_condition_1",
+                    "id": 1,
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "op": "==",
+                            "left": {
+                                "type": "field",
+                                "value": [
+                                    "word_header",
+                                    "flags"
+                                ]
+                            },
+                            "right": {
+                                "type": "hexstr",
+                                "value": "0x0"
+                            }
+                        }
+                    },
+                    "true_next": "word_count_table",
+                    "false_next": "aggregation_table"
+                }
+            ]
+        },
+        {
+            "name": "egress",
+            "id": 1,
+            "init_table": null,
+            "tables": [],
+            "conditionals": []
+        }
+    ],
+    "calculations": [
+        {
+            "name": "hash_word_for_index",
+            "id": 0,
+            "input": [
+                {
+                    "type": "field",
+                    "value": [
+                        "word_header",
+                        "wordEnc"
+                    ]
+                }
+            ],
+            "algo": "crc16"
+        }
+    ],
+    "checksums": [],
+    "learn_lists": [],
+    "field_lists": [],
+    "counter_arrays": [],
+    "register_arrays": [
+        {
+            "name": "word_counter",
+            "id": 0,
+            "bitwidth": 32,
+            "size": 16
+        },
+        {
+            "name": "word_value",
+            "id": 1,
+            "bitwidth": 40,
+            "size": 16
+        }
+    ],
+    "force_arith": [
+        [
+            "standard_metadata",
+            "ingress_port"
+        ],
+        [
+            "standard_metadata",
+            "packet_length"
+        ],
+        [
+            "standard_metadata",
+            "egress_spec"
+        ],
+        [
+            "standard_metadata",
+            "egress_port"
+        ],
+        [
+            "standard_metadata",
+            "egress_instance"
+        ],
+        [
+            "standard_metadata",
+            "instance_type"
+        ],
+        [
+            "standard_metadata",
+            "clone_spec"
+        ],
+        [
+            "standard_metadata",
+            "_padding"
+        ]
+    ]
+}

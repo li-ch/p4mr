@@ -30,12 +30,18 @@ class SrcRoute(Packet):
 
 def read_topo():
     nb_hosts = 0
-    nb_switches = 0
+    nb_mappers = 0
+    nb_reducers = 0
     links = []
     with open("topo.txt", "r") as f:
         line = f.readline()[:-1]
-        w, nb_switches = line.split()
-        assert(w == "switches")
+        w, nb_mappers = line.split()
+        assert(w == "mappers")
+
+        line = f.readline()[:-1]
+        w, nb_reducers = line.split()
+        assert(w == "reducers")
+
         line = f.readline()[:-1]
         w, nb_hosts = line.split()
         assert(w == "hosts")
@@ -43,7 +49,7 @@ def read_topo():
             if not f: break
             a, b = line.split()
             links.append( (a, b) )
-    return int(nb_hosts), int(nb_switches), links
+    return int(nb_hosts), int(nb_mappers), int(nb_reducers), links
 
 def ascii_encode(msg):
     encoded = ''
@@ -66,7 +72,7 @@ def word_assemble(msg, msg_size):
     while len(l) < msg_size:
         l += 'o'
     l = l[:msg_size]
-    return l + chr(msg_size)
+    return l
 
 
 def main():
@@ -77,7 +83,7 @@ def main():
 
     src, dst, pkt_type = sys.argv[1:]
 
-    nb_hosts, nb_switches, links = read_topo()
+    nb_hosts, nb_mappers, nb_reducers, links = read_topo()
 
     port_map = {}
 
@@ -121,7 +127,6 @@ def main():
         p = SrcRoute() / \
                 word_assemble(msg, FIX_WORD_SIZE) / \
                 flag_assemble(pkt_type) / \
-                port_str / \
                 msg
 
         print p.show()
