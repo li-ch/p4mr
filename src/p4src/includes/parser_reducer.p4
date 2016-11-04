@@ -30,14 +30,16 @@ parser parse_word{
      extract(word_header);
      
      return select (word_header.flags) {
-       0x01 : parse_word_map;
-       default : ingress;
+       0 : ingress;
+       default : parse_word_map;
      }
 }
 
 
 header word_map_header_t map_reduce_header;
+
 parser parse_word_map {
+      extract(map_reduce_header);
       return ingress;   
 }
 

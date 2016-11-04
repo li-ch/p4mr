@@ -76,6 +76,18 @@ def word_assemble(msg, msg_size):
     return l
 
 
+def word_enc_map(numWords, bytesPerWord):
+    word_enc = chr(0) * (numWords*bytesPerWord)
+    return word_enc
+
+
+def counter_enc_map(numWords, bytesPerCounter):
+    counter_enc = chr(0) * (numWords * bytesPerCounter)
+    return counter_enc     
+        
+def counter_size (bytes):
+   return (chr(0)* bytes)
+
 def main():
     if len(sys.argv) != 4:
         print "Usage: send2.py [this_host] [target_host] [pkt_type]"
@@ -125,9 +137,24 @@ def main():
         msg = raw_input("What do you want to send: ")
 
         FIX_WORD_SIZE = 5
-        p = SrcRoute() / \
+        NUM_OF_WORDS = 16
+        BYTES_PER_COUNTER = 4
+        COUNTER_SIZE_BYTES = 1
+
+        p= None
+
+        if pkt_type == '0':
+            p = SrcRoute() / \
                 word_assemble(msg, FIX_WORD_SIZE) / \
                 flag_assemble(pkt_type) / \
+                msg
+        else :
+            p = SrcRoute() / \
+                word_assemble(msg, FIX_WORD_SIZE) / \
+                flag_assemble(pkt_type) / \
+                word_enc_map(NUM_OF_WORDS, FIX_WORD_SIZE) / \
+                counter_enc_map(NUM_OF_WORDS, BYTES_PER_COUNTER) / \
+                counter_size(COUNTER_SIZE_BYTES) / \
                 msg
 
         print p.show()
