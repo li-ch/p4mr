@@ -21,6 +21,41 @@ from scapy.all import ShortField, IntField, LongField, BitField
 import re
 import sys
 import struct
+from binascii import hexlify
+
+
+
+def parse_hex(hex_str):
+    parsed_msg = ""
+    hex_units = re.findall('0x[0-9a-fA-F][0-9a-fA-F]', hex_str)
+    for c in hex_units:
+        parsed_msg += chr( int(c, 0) )
+    return parsed_msg
+
+
+def handle_header(msg):
+    NUM_OF_WORDS = 16
+    WORD_SIZE_BYTES = 5
+    COUNTER_SIZE_BYTES = 4
+ 
+    words = msg[0 : WORD_SIZE_BYTES*NUM_OF_WORDS]
+    counters = msg[WORD_SIZE_BYTES*NUM_OF_WORDS : ] # last byte stores the number of words in this packet -- no need to retrieve
+    values = ["0"]*NUM_OF_WORDS    
+    numbers = [0]*NUM_OF_WORDS
+
+    for cnt in xrange(0, NUM_OF_WORDS):
+        word = ''
+        for i in xrange(0, WORD_SIZE_BYTES): # read char by char
+            hexValue = hexlify(words[cnt*WORD_SIZE_BYTES + i]) 
+            word += (chr(int(hexValue, 16)))
+        
+        values[cnt] = word # set the word to its position
+     
+        hexCounter = hexlify((''.join(counters[cnt*COUNTER_SIZE_BYTES : (cnt+1)*COUNTER_SIZE_BYTES])))
+        numbers[cnt] = int(hexCounter, 10) 
+
+
+    return (values, numbers)
 
 def handle_pkt(pkt):
     pkt = str(pkt)
@@ -33,21 +68,20 @@ def handle_pkt(pkt):
     if num_valid != 0:
         print "received incorrect packet"
     """
+    PROTOCOL_DATA_BYTES = 144
     msg = pkt[8:]
-    print msg
-    print "The LENGTH of this PKT", len(msg)
-    """
+    (words, counters) = handle_header(msg[6:(6+PROTOCOL_DATA_BYTES)]) 
+    print ("Words are: ", words)
+    print("Counters are: ", counters)
+    #print msg
+    #print "The LENGTH of this PKT", len(msg)
+    '''
     print bin(ord(msg[0]))
     print parse_hex(msg)
-    """
+    '''
     sys.stdout.flush()
 
-def parse_hex(hex_str):
-    parsed_msg = ""
-    hex_units = re.findall('0x[0-9a-fA-F][0-9a-fA-F]', hex_str)
-    for c in hex_units:
-        parsed_msg += chr( int(c, 0) )
-    return parsed_msg
+
 
 def main():
     sniff(iface = "eth0",

@@ -162,7 +162,30 @@
                         },
                         {
                             "type": "hexstr",
-                            "value": "0x2"
+                            "value": "0x4"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "send_to_all",
+            "id": 1,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_spec"
+                            ]
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x4"
                         }
                     ]
                 }
@@ -173,7 +196,7 @@
         {
             "name": "ingress",
             "id": 0,
-            "init_table": "set_port_table",
+            "init_table": "_condition_0",
             "tables": [
                 {
                     "name": "set_port_table",
@@ -192,9 +215,68 @@
                         "set_port": null
                     },
                     "base_default_next": null
+                },
+                {
+                    "name": "send_to_all_table",
+                    "id": 1,
+                    "match_type": "exact",
+                    "type": "simple",
+                    "max_size": 16384,
+                    "with_counters": false,
+                    "direct_meters": null,
+                    "support_timeout": false,
+                    "key": [],
+                    "actions": [
+                        "send_to_all"
+                    ],
+                    "next_tables": {
+                        "send_to_all": null
+                    },
+                    "base_default_next": null
                 }
             ],
-            "conditionals": []
+            "conditionals": [
+                {
+                    "name": "_condition_0",
+                    "id": 0,
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "op": "valid",
+                            "left": null,
+                            "right": {
+                                "type": "header",
+                                "value": "word_header"
+                            }
+                        }
+                    },
+                    "true_next": "_condition_1",
+                    "false_next": null
+                },
+                {
+                    "name": "_condition_1",
+                    "id": 1,
+                    "expression": {
+                        "type": "expression",
+                        "value": {
+                            "op": "==",
+                            "left": {
+                                "type": "field",
+                                "value": [
+                                    "word_header",
+                                    "flags"
+                                ]
+                            },
+                            "right": {
+                                "type": "hexstr",
+                                "value": "0x0"
+                            }
+                        }
+                    },
+                    "true_next": "set_port_table",
+                    "false_next": "send_to_all_table"
+                }
+            ]
         },
         {
             "name": "egress",

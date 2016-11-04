@@ -22,8 +22,8 @@ limitations under the License.
 #define NUM_OF_BITS_FOR_INDEX 4
 
 // locally a mapper should only have ports within the range [1, 4] -- 1 - input port, [2, 4] - output ports
-#define PORT_INDEX_BASE 2
-#define PORT_INDEX_SIZE 1
+#define PORT_INDEX_BASE 4
+#define PORT_INDEX_SIZE 3
 
 
 field_list word_hashing_fields { 
@@ -42,8 +42,8 @@ field_list_calculation word_hashing_spec {
 action set_port() {
  // just hash the word and set port number in the range [2, 4]
  //modify_field_with_hash_based_offset(standard_metadata.egress_spec, PORT_INDEX_BASE, 
-   //                                  word_hashing_spec, PORT_INDEX_SIZE); 
- modify_field(standard_metadata.egress_spec, PORT_INDEX_BASE); 
+                //                     word_hashing_spec, PORT_INDEX_SIZE); 
+  modify_field(standard_metadata.egress_spec, PORT_INDEX_BASE);
 }
 
 table set_port_table {
@@ -53,29 +53,28 @@ table set_port_table {
 }
 
 
-/*action send_to_all() {
+action send_to_all() {
   // hard-code forwarding for now as some primitive actions do not work.
   modify_field(standard_metadata.egress_spec, PORT_INDEX_BASE);
-  clone_ingress_pkt_to_egress(CLONE_ID);
+  //clone_ingress_pkt_to_egress(CLONE_ID);
 
-  add_to_field(standard_metadata.egress_spec, 1); // update for next packet
-  clone_ingress_pkt_to_egress(CLONE_ID);
+  //add_to_field(standard_metadata.egress_spec, 1); // update for next packet
+  //clone_ingress_pkt_to_egress(CLONE_ID);
 
-  add_to_field(standard_metadata.egress_spec, 1); // update for next packet
+  //add_to_field(standard_metadata.egress_spec, 1); // update for next packet
   
-  modify_field(standard_metadata.egress_spec, PORT_INDEX_BASE);
 }
 
 table send_to_all_table {
   actions {
     send_to_all;
   }
-}*/
+}
  
 
 control ingress {
-  apply(set_port_table);
-  /*if(valid(word_header)) { // if the header successfully parsed -- mappers have to forward all packets, either flags = 0x00 or flags = 0x01 
+
+  if(valid(word_header)) { // if the header successfully parsed -- mappers have to forward all packets, either flags = 0x00 or flags = 0x01 
     if(word_header.flags == 0x00) // a word is sent. Forward to a particular port
     {  
       apply(set_port_table);
@@ -84,7 +83,7 @@ control ingress {
     {
        apply(send_to_all_table);
     }
-  } */
+  } 
 }
 
 

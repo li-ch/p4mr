@@ -18,9 +18,10 @@ limitations under the License.
 #include "includes/parser_reducer.p4"
 
 
-#define OUTPUT_PORT 3 // output port of a reducer (a link to the sink)
+#define OUTPUT_PORT 2 // output port of a reducer (a link to the sink)
 #define MAX_NUM_OF_WORDS 16 // power of 2
 #define NUM_OF_BITS_FOR_INDEX 4 // 2^(NUM_OF_BITS_FOR_INDEX) = MAX_NUM_OF_WORDS
+
 
 header_type ingress_metadata_t {
     fields {
@@ -105,7 +106,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -134,7 +135,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -163,7 +164,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -192,7 +193,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -221,7 +222,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -250,7 +251,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -279,7 +280,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -308,7 +309,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -337,7 +338,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -366,7 +367,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -395,7 +396,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -424,7 +425,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -453,7 +454,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -482,7 +483,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -511,7 +512,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
@@ -540,7 +541,7 @@ action send_map_table() {
   bit_and(ingress_metadata.word_index_word, 
                                 ingress_metadata.word_index_word, 0xFFFFFFFFFF);
   bit_and(ingress_metadata.word_index_counter, 
-                                ingress_metadata.word_index_counter, 0xFFFFFFFFFF);     
+                                ingress_metadata.word_index_counter, 0xFFFFFFFF);     
  
 
   // add to the map packet
