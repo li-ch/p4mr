@@ -1,0 +1,2 @@
+table_set_default word_count_table increment_word_counter
+table_set_default aggregation_table send_map_table

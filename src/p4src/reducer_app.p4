@@ -15,10 +15,10 @@ limitations under the License.
 */
 
 #include "includes/headers_reducer.p4"
-#include "includes/parser.p4"
+#include "includes/parser_reducer.p4"
 
 
-
+#define OUTPUT_PORT 2 // output port of a reducer (a link to the sink)
 #define MAX_NUM_OF_WORDS 16 // power of 2
 #define NUM_OF_BITS_FOR_INDEX 4 // 2^(NUM_OF_BITS_FOR_INDEX) = MAX_NUM_OF_WORDS
 
@@ -40,8 +40,6 @@ header_type ingress_metadata_t {
 }
 
 metadata ingress_metadata_t ingress_metadata;
-
-header word_map_header_t map_reduce_header;
 
 
 field_list word_hashing_fields {
@@ -79,7 +77,8 @@ action increment_word_counter() {
   register_write(word_counter, ingress_metadata.word_hashed_index, ingress_metadata.word_current_counter); // update register file
   
   register_write(word_value, ingress_metadata.word_hashed_index, word_header.wordEnc); // store the value of the received word
-
+  
+  //modify_field(standard_metadata.egress_spec, OUTPUT_PORT);
   drop(); // drop the received packet since there is no need to forward it because the switch stores it in the switch's internal memory
 }
 
@@ -94,15 +93,13 @@ table word_count_table {
 action send_map_table() {
   
   // change the headers a bit
-  remove_header(word_header);
-  add_header(map_reduce_header);
-  add_header(word_header);
-  modify_field(word_header.flags, 0x01); // set the flag  
+  
+  add_header(map_reduce_header); // make this header valid
 
   // Read registers, add them to a packet, erase them.
   
   // read
-  register_read(ingress_metadata.word_index_word, word_value, 0x00);
+  /*register_read(ingress_metadata.word_index_word, word_value, 0x00);
   register_read(ingress_metadata.word_index_counter, word_counter, 0x00);
   
   // make sure that only the word is read
@@ -558,10 +555,14 @@ action send_map_table() {
   register_write(word_value, 0x0F, 0);
   register_write(word_counter, 0x0F, 0);
 
-
+*/
   /********************************************** End of reading the map *************************************/
-  modify_field(map_reduce_header.num_of_words, MAX_NUM_OF_WORDS);
-  modify_field(standard_metadata.egress_spec, 4); // make sure that the port number is 4 -- output port
+  modify_field(map_reduce_header.num_of_words, MAX_NUM_OF_WORDS); // number of words
+  modify_field(map_reduce_header.wordEnc, 0xFFAA00AA); // words
+  modify_field(map_reduce_header.count, 0xFFBB000062); // counter per word
+  //modify_field(map_reduce_header.wordEnc, ingress_metadata.word_map_representation); // words
+  //modify_field(map_reduce_header.count, ingress_metadata.word_counter_representation); // counter per word
+  modify_field(standard_metadata.egress_spec, OUTPUT_PORT); // make sure that the port number is output port
 }
 
 table aggregation_table {
@@ -573,6 +574,7 @@ table aggregation_table {
 control ingress {
   
    // Since resubmit() is not supported, the code only reads all possible values in an action.
+     
    if(valid(word_header))
    {
      if(word_header.flags == 0x00) // just increment a counter

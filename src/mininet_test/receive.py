@@ -24,7 +24,7 @@ import struct
 
 def handle_pkt(pkt):
     pkt = str(pkt)
-    # if len(pkt) < 12: return
+    
     preamble = pkt[:8]
     preamble_exp = "\x00" * 8
     if preamble != preamble_exp: return

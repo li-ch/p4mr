@@ -1,4 +1,6 @@
-switches 1
-hosts 2
+mappers 0
+reducers 1
+hosts 3
 h1 s1
-s1 h2
+h2 s1
+s1 h3

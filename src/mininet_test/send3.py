@@ -30,18 +30,13 @@ class SrcRoute(Packet):
 
 def read_topo():
     nb_hosts = 0
-    nb_mappers = 0
-    nb_reducers = 0
+    nb_switches = 0
     links = []
-    with open("topo2.txt", "r") as f:
+    with open("topo3.txt", "r") as f:
         line = f.readline()[:-1]
         w, nb_mappers = line.split()
-        assert(w == "mappers")
+        assert(w == "switches")
 
-        line = f.readline()[:-1]
-        w, nb_reducers = line.split()
-        assert(w == "reducers")
-       
         line = f.readline()[:-1]
         w, nb_hosts = line.split()
         assert(w == "hosts")
@@ -49,7 +44,7 @@ def read_topo():
             if not f: break
             a, b = line.split()
             links.append( (a, b) )
-    return int(nb_hosts), int(nb_mappers), int(nb_reducers), links
+    return int(nb_hosts), int(nb_switches), links
 
 def ascii_encode(msg):
     encoded = ''
@@ -78,13 +73,13 @@ def word_assemble(msg, msg_size):
 
 def main():
     if len(sys.argv) != 4:
-        print "Usage: send2.py [this_host] [target_host] [pkt_type]"
-        print "For example: send2.py h1 h3 0"
+        print "Usage: send3.py [this_host] [target_host] [pkt_type]"
+        print "For example: send3.py h1 h3 0"
         sys.exit(1)
 
     src, dst, pkt_type = sys.argv[1:]
 
-    nb_hosts, nb_mappers, nb_reducers, links = read_topo()
+    nb_hosts, nb_switches, links = read_topo()
 
     port_map = {}
 
