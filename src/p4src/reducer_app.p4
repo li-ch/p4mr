@@ -18,7 +18,7 @@ limitations under the License.
 #include "includes/parser_reducer.p4"
 
 
-#define OUTPUT_PORT 2 // output port of a reducer (a link to the sink)
+#define OUTPUT_PORT 4 // output port of a reducer (a link to the sink)
 #define MAX_NUM_OF_WORDS 16 // power of 2
 #define NUM_OF_BITS_FOR_INDEX 4 // 2^(NUM_OF_BITS_FOR_INDEX) = MAX_NUM_OF_WORDS
 

@@ -151,7 +151,7 @@
             "runtime_data": [],
             "primitives": [
                 {
-                    "op": "modify_field",
+                    "op": "modify_field_with_hash_based_offset",
                     "parameters": [
                         {
                             "type": "field",
@@ -162,7 +162,15 @@
                         },
                         {
                             "type": "hexstr",
-                            "value": "0x4"
+                            "value": "0x2"
+                        },
+                        {
+                            "type": "calculation",
+                            "value": "word_hashing_spec"
+                        },
+                        {
+                            "type": "hexstr",
+                            "value": "0x3"
                         }
                     ]
                 }
@@ -185,7 +193,7 @@
                         },
                         {
                             "type": "hexstr",
-                            "value": "0x4"
+                            "value": "0x2"
                         }
                     ]
                 }
@@ -286,7 +294,22 @@
             "conditionals": []
         }
     ],
-    "calculations": [],
+    "calculations": [
+        {
+            "name": "word_hashing_spec",
+            "id": 0,
+            "input": [
+                {
+                    "type": "field",
+                    "value": [
+                        "word_header",
+                        "wordEnc"
+                    ]
+                }
+            ],
+            "algo": "crc16"
+        }
+    ],
     "checksums": [],
     "learn_lists": [],
     "field_lists": [],
