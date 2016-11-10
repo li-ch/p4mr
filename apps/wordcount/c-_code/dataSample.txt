@@ -1,0 +1,4 @@
+hello, world. My name is John!
+Why are you?
+What's going on with this file, ahm?
+------ How people can handle this,    !! world.     
