@@ -1,15 +1,18 @@
-#include <iostream>
-#include <fstream>
+// Compile by "~$(pwd):g++ -std=c++11 multithreaded_mapreduce.cc -lpthread"
+// Put data files into "(pwd)/data/"
 #include <algorithm>
-#include <sstream>
-#include <string>
-#include <cstring>
-#include <vector>
+#include <iostream>
 #include <iterator>
+#include <cstring>
+#include <fstream>
+#include <sstream>
+#include <utility>
+#include <string>
+#include <vector>
 #include <thread>
+#include <chrono>
 #include <mutex>
 #include <ctime>
-#include <chrono>
 #include <map>
 #include <set>
 
@@ -19,8 +22,12 @@ using namespace std;
 
 #define NUM_MAPPERS    3
 #define NUM_REDUCERS   3
+
 typedef vector<string>::const_iterator VectorIter;
 typedef map<string,int>::const_iterator MapIter;
+typedef vector<vector<pair<string, int> > >::const_iterator ResIter;
+typedef vector<pair<string, int> >::const_iterator VecPairIter;
+typedef chrono::high_resolution_clock::time_point T_type;
 
 mutex my_mapper_lock;
 mutex my_reducer_lock;
@@ -98,11 +105,9 @@ vector<string> read_file(string const & file_name) {
 
 vector<string> load_data(vector<string> const & file_names) {
     vector<string> all_words;
-    VectorIter start = file_names.begin();
-    VectorIter end   = file_names.end();
-    for (VectorIter f = start; f != end; ++f) {
+    for (const auto & f : file_names) {
         vector<string> file_words;
-        file_words = read_file(*f);
+        file_words = read_file(f);
         all_words.insert(all_words.end(), file_words.begin(), file_words.end() );
     }
     return all_words;
@@ -125,74 +130,83 @@ void mapper(VectorIter start,
 }
 
 void reducer(vector<vector<string> > const & reduce_bins,
-        map<string, int> & result,
+        vector<vector<pair<string, int> > > & result_bins,
         unsigned long const bin_id) {
     VectorIter start = reduce_bins[bin_id].begin();
     VectorIter end   = reduce_bins[bin_id].end();
+    string cur_word;
+    int cur_count = 0;
     for (VectorIter i = start; i != end; ++i ) {
-        string word = *i;
+        if (!cur_count) {
+            cur_word = *i;
+            cur_count = 1;
+        } else {
+            if ( !cur_word.compare(*i) )
+                cur_count += 1;
+            else {
+                /* update (word, count) in result_bins
+                 * This process may not require lock since each reducer bin
+                 * contains different set of words
+                 *
+                 */
+                // my_reducer_lock.lock();
+                pair<string, int> cur_pair
+                    = make_pair (cur_word, cur_count);
+                result_bins[bin_id].push_back (cur_pair);
+                // my_reducer_lock.unlock();
 
-        // update (word, count) in result
-        // This process may not require lock since each reducer bin
-        // contains different set of words
-        // my_reducer_lock.lock();
-        result[word] += 1;
-        // my_reducer_lock.unlock();
-    }
-}
-
-void map_reduce(VectorIter start, VectorIter end) {
-    string line;
-    vector<string> words;
-    map<string, int> maps;
-
-    for (VectorIter f = start; f != end; ++f) {
-        ifstream myfile (*f);
-        if (myfile.is_open())
-        {
-            while ( getline (myfile,line) )
-            {
-                words = split(line);
-                for (VectorIter w = words.begin(); w != words.end(); ++w) {
-                    /* Display words
-                     *
-                    // cout << *w << '\n';
-                    */
-                    maps[*w] += 1;     
-                }
+                cur_word = *i;
+                cur_count = 1;
             }
-            myfile.close();
-            /* Display results
-             *
-            for (MapIter m = maps.begin(); m != maps.end(); ++m) {
-                cout << m->first << ": " << m->second << '\n';
-            }
-            */
         }
-        else cout << "Unable to open file"; 
     }
+
+    pair<string, int> cur_pair
+        = make_pair (cur_word, cur_count);
+    result_bins[bin_id].push_back (cur_pair);
 }
 
-void display_vector( vector<string> const & this_vec) {
-    VectorIter start = this_vec.begin();
-    VectorIter end   = this_vec.end();
+
+void display_vector(vector<string> const & this_vec) {
     cout << '\t' << '\t';
-    for (VectorIter i = start; i != end; ++i) {
-        cout << *i << ' ';
+    for (const auto& v: this_vec) {
+        cout << v << ' ';
     }
     cout << '\n';
 }
 
-void display_map( map<string, int> const & this_map) {
-    MapIter start = this_map.begin();
-    MapIter end   = this_map.end();
-    cout << '\n' << '\t' << "  MR Results:" << '\n';
-    for (MapIter i = start; i != end; ++i) {
+void display_reduce_bins(vector<vector<string> > const & reduce_bins) {
+    for (const auto& bin: reduce_bins) {
         cout << '\t' << '\t';
-        cout << i->first << ": " << i->second << '\n';
+        for (const auto& v: bin) {
+            cout << v << ' ';
+        }
+        cout << '\n';
     }
     cout << '\n';
 }
+
+void display_results(vector<vector<pair<string, int> > > const & results) {
+    cout << '\n' << '\t' << "  MR Results:" << '\n';
+    for (const auto& bin: results) {
+        for (const auto& i: bin) {
+            cout << '\t' << '\t';
+            cout << i.first << ": " << i.second << '\n';
+        }
+    }
+    cout << '\n';
+}
+
+T_type print_time (T_type t_prev, string const & info) {
+    T_type t_now =
+        chrono::high_resolution_clock::now();
+    chrono::duration<double> time_span =
+        chrono::duration_cast<chrono::duration<double>> (t_now - t_prev);
+    cout << '\t' << info << " Time: " << time_span.count()
+         << " seconds." << '\n' << endl;
+    return t_now;
+}
+
 
 int main () {
     vector<string> files;
@@ -201,13 +215,17 @@ int main () {
     unsigned long const num_mappers = NUM_MAPPERS;
     unsigned long const num_reducers = NUM_REDUCERS;
     vector<vector<string> > reduce_bins(num_reducers);
-    map<string, int> result;
+    vector<vector<pair<string, int> > > result_bins(num_reducers);
+
 
     /*** Load all data into memory, saying, a <vector> ***/
     vector<string> data = load_data(files);
     unsigned long const total_num_words = data.size();
 
-    chrono::high_resolution_clock::time_point t1 = chrono::high_resolution_clock::now();
+
+    /*** Start recording time ***/
+    T_type t1 = chrono::high_resolution_clock::now();
+    T_type t_map, t_sort, t_red, t_final;
     /*** mappers threads ***/
     unsigned long const hardware_threads = 
         thread::hardware_concurrency();
@@ -236,11 +254,24 @@ int main () {
     }
     mapper(block_start, last, ref(reduce_bins), num_reducers);
     for_each( mapper_threads.begin(), mapper_threads.end(), mem_fn(&thread::join) );
-    chrono::high_resolution_clock::time_point t_map =
-        chrono::high_resolution_clock::now();
-    chrono::duration<double> time_span =
-        chrono::duration_cast<chrono::duration<double>> (t_map - t1);
-    cout << "\tMap Time: " << time_span.count() << " seconds." << endl;
+    t_map = print_time(t1, "Map");
+
+
+    /*** sorting threads ***/
+    vector<thread> sort_threads(num_reducers);
+    cout << "\tNumber of sorting threads: " << num_reducers << '\n';
+    for (unsigned long i=0; i < num_reducers; ++i) {
+        sort_threads[i] = thread(
+                sort<vector<string>::iterator>,
+                reduce_bins[i].begin(),
+                reduce_bins[i].end()
+                );
+    }
+    for_each( sort_threads.begin(),
+            sort_threads.end(),
+            mem_fn(&thread::join) );
+    t_sort = print_time(t_map, "Sort");
+
 
     /*** reducers threads ***/
     vector<thread> reducer_threads(num_reducers);
@@ -249,24 +280,17 @@ int main () {
         reducer_threads[i] = thread(
                 reducer,
                 ref(reduce_bins),
-                ref(result),
+                ref(result_bins),
                 i);
     }
-    for_each( reducer_threads.begin(), reducer_threads.end(), mem_fn(&thread::join) );
-    chrono::high_resolution_clock::time_point t_red =
-        chrono::high_resolution_clock::now();
-    time_span =
-        chrono::duration_cast<chrono::duration<double>> (t_red - t_map);
-    cout << "\tReduce Time: " << time_span.count() << " seconds." << endl;
+    for_each( reducer_threads.begin(),
+            reducer_threads.end(),
+            mem_fn(&thread::join) );
+    t_red = print_time(t_sort, "Reduce");
 
 
     /*** summary ***/
-    // display_map(result);
-    chrono::high_resolution_clock::time_point t2 =
-        chrono::high_resolution_clock::now();
-    time_span =
-        chrono::duration_cast<chrono::duration<double>> (t2 - t1);
-    cout << "\tTotal Time spent: " << time_span.count() << " seconds." << endl;
+    t_final = print_time(t1, "Total Time");
 
     return 0;
 }
