@@ -19,26 +19,27 @@ done
 
 wait $(echo ${MAPPER_PROCESSES[*]}) # wait until all the mappers end
 
+
 # write the time difference (us)
 END_TIME=$(date +%s%6N) #record end time (us)
 echo $((END_TIME - START_TIME)) >> mappers_time.txt 
 
 
 
-REDUCER_PROCESSES[0]=0
+declare -a REDUCER_PROCESSES
 START_TIME=$(date +%s%6N)  # record start time (us)
 
 # Reducers are started once the mappers are done.
 let COUNTER=0
 while [ $COUNTER -lt $NUM_OF_REDUCERS ]; do
   
-    cat mapper_*_reducer_"$COUNTER".txt > input_to_reducer_"$COUNTER".txt 
-    sort -bnk4 input_to_reducer_"$COUNTER".txt > input_to_reducer_sorted_"$COUNTER".txt
+    cat *"_reducer_"$COUNTER".txt" > input_to_reducer_cat_"$COUNTER".txt 
+    sort -bnk4 input_to_reducer_cat_"$COUNTER".txt > input_to_reducer_sorted_"$COUNTER".txt
     ./reducer $COUNTER input_to_reducer_sorted_"$COUNTER".txt & # pass an index and an input file to the program
-    
+    REDUCER_PROCESSES[$COUNTER]=$! # store the process id   
 
     let COUNTER=COUNTER+1
-#done
+done
 
 
 wait $(echo ${REDUCER_PROCESSES[*]}) # wait until all the reducers end
@@ -46,5 +47,4 @@ wait $(echo ${REDUCER_PROCESSES[*]}) # wait until all the reducers end
 END_TIME=$(date +%s%6N) #record end time (us)
 # write the time difference (us)
 echo $((END_TIME - START_TIME)) >> reducers_time.txt 
-
-unset END_TIME START_TIME COUNTER REDUCER_PROCESSES MAPPER_PROCESSES
+unset END_TIME START_TIME REDUCER_PROCESSES MAPPER_PROCESSES COUNTER 

@@ -37,14 +37,22 @@ void map(const uint32_t index, const uint32_t noOfReducers, const char* filename
   
   ofstream reducer_files[noOfReducers]; // create an array of ofstream files for writing to the reducer files
   
-  for(uint32_t f_index = 0; f_index < noOfReducers; f_index++) // read one by one to open files (C++x03 is used for getting an index)
+  ostringstream index_string, file_index_string;
+  index_string << index; // get index  
+
+  for(int f_index = 0; f_index < noOfReducers; f_index++) // read one by one to open files (C++x03 is used for getting an index)
   {
    
+    file_index_string << f_index; 
     // creates a file name that follows the naming convention: mapper_[mapper_index]_reducer_[reducer_index].txt
     string filename(FILE_PREFIX);
-    filename.append(("" + index)).append(FILE_POSTFIX).append(("" + f_index)).append(FILE_EXTENSION);    
+    filename.append(index_string.str()).append(FILE_POSTFIX).append(file_index_string.str()).append(FILE_EXTENSION);    
 
     (*(reducer_files + f_index)).open(filename.c_str(), ios_base::out); // open a file for writing
+
+    // clear string stream
+    file_index_string.clear();
+    file_index_string.str("");
   }
 
   // read the input file and write to the output files
@@ -90,11 +98,13 @@ int main (int argc, char** argv)
   {
      uint32_t m_index, m_noOfReducers;
      istringstream map_SS(argv[1]), reducer_SS(argv[2]); // read numbers that are required by the program 
- 
+     
      (map_SS >> m_index); // read the index for this map 
      (reducer_SS >> m_noOfReducers); // read the number of reducers
+     
      // start processing the input file
      map(m_index, m_noOfReducers, argv[3]);
+
   }  
   else
   {
