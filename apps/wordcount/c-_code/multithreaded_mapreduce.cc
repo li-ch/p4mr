@@ -1,5 +1,5 @@
-// Compile by "~$(pwd):g++ -std=c++11 multithreaded_mapreduce.cc -lpthread"
-// Put data files into "(pwd)/data/"
+// Compile by "~$(pwd):g++ -o multithreaded_mr -std=c++11 multithreaded_mapreduce.cc -lpthread"
+// "~$(pwd):./multithreaded_mr DATA_FOLDER #NUM_THREADS"
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -19,9 +19,6 @@
 #include <dirent.h>
 
 using namespace std;
-
-#define NUM_MAPPERS    3
-#define NUM_REDUCERS   3
 
 typedef vector<string>::const_iterator VectorIter;
 typedef map<string,int>::const_iterator MapIter;
@@ -208,12 +205,25 @@ T_type print_time (T_type t_prev, string const & info) {
 }
 
 
-int main () {
+int main (int argc, char* argv[]) {
+    /*** Check input correctness***/
+    if (argc < 3) {
+        cerr << "Usage: " << argv[0] << " DATA_FOLDER"
+             << " #NUM_Threads" << '\n';
+        return 1;
+    }
+    istringstream ss(argv[2]);
+    int num_threads;
+    if (!(ss >> num_threads)) {
+        cerr << "Invalid threads number: " << argv[2] << '\n';
+        return 1;
+    }
+
     vector<string> files;
-    files = list_dir("./data/");
+    files = list_dir(argv[1]);
     unsigned long const num_files = files.size();
-    unsigned long const num_mappers = NUM_MAPPERS;
-    unsigned long const num_reducers = NUM_REDUCERS;
+    unsigned long const num_mappers = num_threads;
+    unsigned long const num_reducers = num_threads;
     vector<vector<string> > reduce_bins(num_reducers);
     vector<vector<pair<string, int> > > result_bins(num_reducers);
 
@@ -253,7 +263,9 @@ int main () {
         block_start = block_end;
     }
     mapper(block_start, last, ref(reduce_bins), num_reducers);
-    for_each( mapper_threads.begin(), mapper_threads.end(), mem_fn(&thread::join) );
+    for_each( mapper_threads.begin(),
+              mapper_threads.end(),
+              mem_fn(&thread::join) );
     t_map = print_time(t1, "Map");
 
 
@@ -290,7 +302,7 @@ int main () {
 
 
     /*** summary ***/
-    t_final = print_time(t1, "Total Time");
+    t_final = print_time(t1, "Total Running");
 
     return 0;
 }
