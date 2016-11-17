@@ -5,22 +5,28 @@
 #include <vector>
 #include <sstream>
 #include <iterator>
+#include <chrono>
 
 
 using namespace std;
 
-#define DATA_CHUNK_SIZE 16 // data chunks in bytes (Hadoop uses 64MB default)
+typedef std::chrono::high_resolution_clock::time_point T_type;
 
 
-int getFileSize(ofstream& file)
+//#define DATA_CHUNK_SIZE 16 // data chunks in bytes (Hadoop uses 64MB default)
+#define MIN_CHUNK_SIZE 16 // chunk must be at least 16-byte size.
+
+void writeTimespanToFile(const T_type& t_start, const T_type& t_end, const char* const filename);
+
+uint32_t getFileSize(ofstream& file)
 {
   
-  return ((int)file.tellp()); // returns file size
+  return ((uint32_t)file.tellp()); // returns file size
 }
 
-bool readRemain(vector<string>& words, ofstream& file, const int curSize = 0)// has a side effect
+bool readRemain(const uint32_t DATA_CHUNK_SIZE, vector<string>& words, ofstream& file, const uint32_t curSize = 0)// has a side effect
 {
-  int position = 0, readBytes = 0;
+  uint32_t position = 0, readBytes = 0;
 
   for(vector<string>::const_iterator itr = words.begin(); itr != words.end(); itr++)
   {
@@ -72,7 +78,7 @@ bool punctValue(const int ch)
 }
 
 
-void partitionData(const char* const FILE_NAME)
+void partitionData(const uint32_t DATA_CHUNK_SIZE, const char* const FILE_NAME)
 { 
  
   ifstream inputFile(FILE_NAME, ios_base::in); // open the data file
@@ -95,7 +101,7 @@ void partitionData(const char* const FILE_NAME)
     // if some words left from previous line, read them in the newly created file    
     if(!words.empty())
     { // read
-      if(readRemain(words, file)) // check if the new file is full
+      if(readRemain(DATA_CHUNK_SIZE, words, file)) // check if the new file is full
       {
         file.close();
         continue; // don't execute further since the new file is already full
@@ -112,7 +118,7 @@ void partitionData(const char* const FILE_NAME)
 
        
       // check if the file gets full; if yes, copy the remaining of the vector to the global vector; otherwise, do nothing.
-      if(readRemain(lineWords, file, getFileSize(file)))
+      if(readRemain(DATA_CHUNK_SIZE, lineWords, file, getFileSize(file)))
       {
         words.insert(words.end(), lineWords.begin(), lineWords.end()); // append the remaining content to the global vector
         break; // break out of the most-inner while loop
@@ -137,7 +143,7 @@ void partitionData(const char* const FILE_NAME)
     ofstream file(title.c_str(), ios_base::out); // a new text file for writing  
     
     // if some words left from previous line, read them in the newly created file    
-    readRemain(words, file); // check if the new file is full
+    readRemain(DATA_CHUNK_SIZE, words, file); // check if the new file is full
     file.close();    
 
   }// while  
@@ -148,14 +154,53 @@ void partitionData(const char* const FILE_NAME)
 int main (int argc, char** argv)
 {
 
-  if(argc > 1)
+  if(argc == 4)
   {
-    partitionData(argv[1]); // run a script for partition a big dataset into smaller ones.
+    stringstream chunkReader(argv[1]);
+   
+    uint32_t chunk_size;
+
+    chunkReader >> chunk_size;     
+
+    if(chunk_size < MIN_CHUNK_SIZE)
+    {
+      printf("Your entered chunk size is too small. Please try one more time (min chunk size = %d bytes).\n", MIN_CHUNK_SIZE);
+      return 0;
+    }
+
+    /*** Start recording time ***/
+    T_type t_start = chrono::high_resolution_clock::now();
+
+    partitionData(chunk_size, argv[2]); // run a script for partition a big dataset into smaller ones.
+
+    T_type t_end = chrono::high_resolution_clock::now();
+
+    writeTimespanToFile(t_start, t_end, argv[3]);
   }
   else 
   {
-    printf("Please pass an input file for reading (.txt)\n");
+    printf("Please input the chunk size, an input file for reading (.txt) and an output file for storing time (.txt)\n");
   }
 
   return 0;
 }
+
+
+// this function writes a timespan to a file
+void writeTimespanToFile(const T_type& t_start, const T_type& t_end, const char* const filename)
+{
+
+    chrono::duration<double> time_span =
+        chrono::duration_cast<chrono::duration<double>> (t_end - t_start);
+    stringstream timespanStream;
+    timespanStream << time_span.count(); // converts time into a tring
+
+    string writeString("Time: ");
+    writeString.append(timespanStream.str()).append(" seconds\n"); // create a line for the text file
+
+    ofstream file(filename, ios_base::app); // append times
+    file.write(writeString.c_str(), writeString.size()); // write to the file
+
+    file.close();
+}
+
