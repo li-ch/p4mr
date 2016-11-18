@@ -6,7 +6,8 @@
 #include <sstream>
 #include <iterator>
 #include <chrono>
-
+#include <locale>
+#include <cstring>
 
 using namespace std;
 
@@ -19,6 +20,31 @@ typedef std::chrono::high_resolution_clock::time_point T_type;
 void 
 writeTimespanToFile(const T_type& t_start, const T_type& t_end, 
                     const char* const filename, const char* const chunkSize, const char* const dataSize);
+
+
+// Structure for handling lines of a text. This structure
+// is taken from Ge's code.
+
+struct tokens: ctype<char> 
+{
+    tokens(): ctype<char>(get_table()) {}
+
+    static ctype_base::mask const* get_table()
+    {
+        typedef ctype<char> cctype;
+        static const cctype::mask *const_rc= cctype::classic_table();
+
+        static cctype::mask rc[cctype::table_size];
+        memcpy(rc, const_rc, cctype::table_size * sizeof(cctype::mask));
+
+        rc[','] = ctype_base::space; 
+        rc['.'] = ctype_base::space; 
+        rc[' '] = ctype_base::space; 
+        return &rc[0];
+    }
+}; 
+
+
 
 uint32_t getFileSize(ofstream& file)
 {
@@ -63,13 +89,16 @@ bool readRemain(const uint32_t DATA_CHUNK_SIZE, vector<string>& words, ofstream&
 
 }
 
-vector<string> splitString(const string& line) // splits a string into separate words (uses a spcace to split)
+vector<string> split(const string& line) // splits a string into separate words (uses a spcace to split)
 {
-    istringstream buffer(line);
-    vector<string> ret((istream_iterator< string >(buffer)), 
-                                 istream_iterator< string >());
-    return ret;
+    stringstream buffer(line);
+    buffer.imbue(locale(locale(), new tokens())); // for processing lines
+    istream_iterator<string> begin(buffer);
+    istream_iterator<string> end;
+    vector<string> lineWords(begin, end);
+
   
+    return lineWords;
 }
 
 
@@ -93,12 +122,11 @@ void partitionData(const uint32_t DATA_CHUNK_SIZE, const char* const FILE_NAME)
   while(!inputFile.eof())
   { 
     stringstream streamString;
-    streamString << "chunk_" << counter << ".txt";
-    const string title = streamString.str(); // a title for a new chunk file
+    streamString << "chunks/chunk_" << counter << ".txt";
     counter++; // increment the counter for next iteration
 
 
-    ofstream file(title.c_str(), ios_base::out); // a new text file for writing  
+    ofstream file(streamString.str().c_str(), ios_base::out); // a new text file for writing  
     
     // if some words left from previous line, read them in the newly created file    
     if(!words.empty())
@@ -110,13 +138,11 @@ void partitionData(const uint32_t DATA_CHUNK_SIZE, const char* const FILE_NAME)
       } 
     }
      
-    string line = ""; // a line for reading
+    string line; // a line for reading
 
     while(getline(inputFile, line, '\n'))
     {
-      line.erase(remove_if(line.begin (), line.end (), punctValue), line.end()); // get rid of punctuation signs
-      vector<string> lineWords = splitString(line); // get a vector of words on this line
-      line.clear(); // clear the string for a new reading
+      vector<string> lineWords = split(line); // get a vector of words on this line
 
        
       // check if the file gets full; if yes, copy the remaining of the vector to the global vector; otherwise, do nothing.
@@ -139,10 +165,9 @@ void partitionData(const uint32_t DATA_CHUNK_SIZE, const char* const FILE_NAME)
   {
     stringstream streamString;
     streamString << "chunk_" << counter << ".txt";
-    const string title = streamString.str(); // a title for a new chunk file
-    counter++; 
+    counter++; // for next file
 
-    ofstream file(title.c_str(), ios_base::out); // a new text file for writing  
+    ofstream file(streamString.str().c_str(), ios_base::out); // a new text file for writing  
     
     // if some words left from previous line, read them in the newly created file    
     readRemain(DATA_CHUNK_SIZE, words, file); // check if the new file is full
