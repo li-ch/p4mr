@@ -1,0 +1,224 @@
+%\documentclass[twocolumn]{sig-alternate}
+\documentclass[twocolumn]{sig-alternate-10pt}
+%\documentclass[twocolumn,10pt]{infocom}
+%\documentclass[twocolumn,10pt]{IEEEtran_v15}
+%\documentclass[twocolumn,10pt]{IEEEtran}
+%\documentclass[twocolumn,10pt]{article}
+\usepackage[sort,nocompress,space]{cite}
+
+%\documentclass[letterpaper,twocolumn,10pt]{article}
+%\documentclass[letterpaper,twocolumn,10pt]{report}
+%\usepackage{usenix,epsfig,endnotes}
+
+%\usepackage{url}
+%\usepackage{hyperref}
+%\usepackage[sort,space]{cite}
+%\usepackage[numbers,sort&compress]{natbib}
+\usepackage{lineno}
+\renewcommand\linenumberfont{\normalfont\bfseries\small}
+\usepackage{pifont}
+\usepackage{epsfig,epsf,url,amssymb}
+%\usepackage{epsfig,epsf,url,amssymb}
+%\usepackage{epspdfconversion}
+%\usepackage{epstopdf}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage[linesnumbered,boxed,ruled,vlined]{algorithm2e}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\newtheorem{mydef}{Definition}
+\let\proof\relax
+\let\endproof\relax
+\usepackage{amsthm}
+\usepackage{rotating}
+%\usepackage{color}
+%\usepackage{wrapfig}
+\usepackage{times}
+\long\def\comment#1{}
+\usepackage{multirow}
+%\usepackage{amssymb}
+\usepackage{lscape}
+\usepackage{stmaryrd}
+\usepackage{wrapfig}
+\usepackage{hhline}
+\usepackage{textcomp,booktabs}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{colortbl}
+% \usepackage[tight]{subfigure}
+\usepackage[font=bf, labelfont=bf,skip=0pt]{caption}
+% \usepackage{setspace}
+%\definecolor{mygray}{gray}{.9}
+%\definecolor{mypink}{gray}{.9}
+%\definecolor{mycyan}{cmyk}{.3,0,0,0}
+
+\newcommand{\bbR}{\mathbb{R}}
+\newcommand{\calN}{\mathcal{N}}
+\newcommand{\calR}{\mathcal{R}}
+\newcommand{\calV}{\mathcal{V}}
+\newcommand{\eg}{{\it e.g.}}
+\newcommand{\etal}{{\it et al.~}}
+\newcommand{\etc}{{\it etc.}}
+\newcommand{\ie}{{\it i.e.}}
+\newcommand{\tablecapspace}{{\vspace{-0.1in}}}
+\newcommand{\tablespace}{{\vspace{-0.05in}}}
+\newcommand{\picspace}{{\vspace{-0.1in}}}
+\renewcommand{\baselinestretch}{1}
+\renewcommand{\arraystretch}{1.05}      % make the space between tabular lines larger
+\newcommand{\capspace}{}           % control space between figure/table and caption
+
+\DeclarePairedDelimiter{\ceil}{\rceil}{\lceil}
+
+%\setlength{\textheight}{9.3in}
+%\setlength{\columnsep}{1.4pc}
+%\setlength{\textwidth}{7.1in}
+
+%\setlength{\textheight}{9.3in}
+%\setlength{\columnsep}{0.25in}
+%\setlength{\columnsep}{1.4pc}
+%\setlength{\textwidth}{7.1in}
+%\setlength{\textwidth}{7.1in}
+% \setlength{\footskip}{0.25in}
+%\setlength{\topmargin}{-0.25in}
+% \setlength{\headheight}{0.0in}
+% \setlength{\headsep}{0.0in}
+%\addtolength{\topmargin}{-0.25in}
+% \addtolength{\evensidemargin}{-.25in}
+%\setlength{\parindent}{0pc}
+%\setlength{\parskip}{\baselineskip}
+%\usepackage[small,compact]{titlesec}
+%\usepackage[small,it]{caption}
+%\linespread{.98}
+
+\newcommand{\sys}{{\textsf{p4mr}}\xspace}
+\newcommand{\starcast}{{$\ast$-cast}\xspace}
+
+
+\def\lich#1{\textcolor{blue}{Li: #1}}
+
+\newcommand{\subcaption}[1]{\centerline{#1}\vspace{0.1in}}
+\long\def\comment#1{}
+\newtheorem{theorem}{Theorem}
+\newtheorem*{theorem-non}{Theorem}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\newenvironment{icompact}{
+  \begin{list}{$\bullet$}{
+    \parsep 0.5pt plus 0.5pt
+    \partopsep 0.5pt plus 0.5pt
+    \topsep 0.5pt plus 1pt minus 0.5pt
+    \itemsep 0.5pt plus 0.5pt
+    \parskip 0pt plus 1pt
+    \leftmargin 0.15in}
+       }
+  {\normalsize\end{list}}
+%\newenvironment{icompact}{
+%  \begin{list}{$\bullet$}{
+%    \parsep 1pt plus 1pt
+%    \partopsep 1pt plus 1pt
+%    \topsep 1pt plus 2pt minus 1pt
+%    \itemsep 1pt plus 1pt
+%    \parskip 0pt plus 2pt
+%    \leftmargin 0.15in}
+%       }
+%  {\normalsize\end{list}}
+
+%minlan
+\newcommand{\paraspace}{\vspace{0.05in}} %0.05
+\newcommand{\parab}[1]{\paraspace\noindent{\bf #1} }
+\newcommand{\parae}[1]{\paraspace\noindent{\em #1} }
+\newcommand{\parabe}[1]{\paraspace\noindent{\bf \em #1} }
+\newcommand{\minlan}[1]{{\color{blue}[Minlan: #1]}}
+\def\TODO#1{\textcolor{red}{[#1]}}
+\def\todo#1{\textcolor{red}{[TODO: #1]}}
+
+%\setlength{\oddsidemargin}{-0.25in}
+%\setlength{\oddsidemargin}{-0.3in}
+%\addtolength{\oddsidemargin}{-0.1in}
+%\oddsidemargin=-0.1in % leftmargin is 1 inch
+
+%\renewcommand\topfraction{0.85}
+%\renewcommand\bottomfraction{0.85}
+%\renewcommand\textfraction{0.1}
+%\renewcommand\floatpagefraction{0.85}
+
+%\setlength{\parskip}{0pt}
+%\setlength{\parsep}{0pt}
+%%\setlength{\headsep}{0pt}
+%\setlength{\topskip}{0pt}
+%%\setlength{\topmargin}{0pt}
+%%\setlength{\topsep}{0pt}
+%\setlength{\partopsep}{0pt}
+
+%%%%%%%% to calculate the time %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcount\hour \newcount\minute
+\hour=\time  \divide \hour by 60
+\minute=\time
+\loop \ifnum \minute > 59 \advance \minute by -60 \repeat
+\def\drafttime{\ifnum \hour<13 \number\hour:%
+                      \ifnum \minute<10 0\fi
+                      \number\minute
+                      \ifnum \hour<12 \ AM\else \ PM\fi
+         \else \advance \hour by -12 \number\hour:%
+                      \ifnum \minute<10 0\fi
+                      \number\minute \ PM\fi}
+\def\timestamp{\today \ \drafttime}
+
+\usepackage{epstopdf}
+
+\usepackage{multirow}
+\usepackage{rotating}
+
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,      % false: boxed links; true: colored links
+  linkcolor=blue,       % color of internal links
+  citecolor=magenta,    % color of links to bibliography
+  filecolor=cyan,       % color of file links
+  urlcolor=red          % color of external links
+}
+
+\hyphenation{para-digm base-mesh micro-second milli-second trans-ceiver}
+\begin{document}
+%
+%\conferenceinfo{SIGCOMM,} {XXXXXX, XXXXX, XXXXX, XXXXX.} %
+%\CopyrightYear{2009} \crdata{1-59593-308-5/06/0009}
+
+\title{Line-Rate Map-Reduce in Data Plane}
+%\author{
+%%\alignauthor{
+%    Li Chen$^{1}$, Kai Chen$^{1}$, Zhonghua Zhu$^{2}$, Minlan Yu$^{3}$, George Porter$^{4}$, Chunming Qiao$^{5}$, Shan Zhong$^{2}$\\
+%    $^{1}$HKUST~~~~$^{2}$CoAdna Photonics~~~~$^{3}$USC~~~$^{4}$UCSD~~~~$^{5}$SUNY Buffalo
+%}
+\author{Paper $\#\#$, 12 pages, \timestamp}
+\maketitle
+
+\setlength{\textfloatsep}{0pt}% Remove \textfloatsep
+\medmuskip=0mu\relax % Remove spaces around $\times$
+\thinmuskip=0mu\relax % Remove spaces around $\times$
+\thickmuskip=0mu\relax % Remove spaces around $\times$
+%\vspace{-0.05in}
+\input{sections/abstract.tex}
+\input{sections/introduction.tex}
+\input{sections/background.tex}
+\input{sections/sys.tex}
+\input{sections/implement.tex}
+\input{sections/eval.tex}
+\input{sections/discussion.tex}
+\input{sections/related.tex}
+\input{sections/conclusion.tex}
+
+\clearpage
+%\setlength\bibitemsep{0pt}
+
+\bibliographystyle{IEEEtran}
+%\bibliographystyle{acm}
+\bibliography{reference}
+\clearpage
+\input{sections/appendix.tex}
+
+%\clearpage
+
+\end{document}

@@ -1,0 +1,19 @@
+\section{Introduction}
+We cite dctcp~\cite{dctcp}.
+
+Fixed function computation is plenty in existing data plane, e.g. counting, routing, forwards, and state machines. 
+They are done at line rate of the networking device. 
+These fixed data plane functions are traditionally distinct from user applications. 
+The emergence of programmable data plane blurs this distinction, and unlocks the possibility of doing user compuation tasks at line rate in the data plane.
+
+Prior works in programmable data plane focus on network functions. A function, like Paxos algorithm, that requires programming multiple switches, are done by hand by P4 programmers. User applications usually takes more than one switch, and to program and debug many switches is inherently difficult. Furthermore, scalabiity and extensibility of multi-target functions is a concern. After developing a program in P4, if the user want to add more switches to carry out this function, the user will have to do it by hand. In general, programming in P4 is analogous to programming in assembly for a large network of targets.
+
+We therefore aim to develope a programming framework for multi-target functions. In particular, we build a Map-Reduce framework for P4, \sys. 
+
+\sys take user program as input and compile it into mulitple P4 programs for a network of P4 targets. 
+Based on the prior knowledge of topology and hardware capability, \sys customize P4 codes to the corresponding hardware.
+Specifically, \sys adds appropriate routing between mappers and reducers, and  places mapper/reducer code to appropriate targets.
+
+Online data parallel (OLDP) applications are important catagory of data center application, such as web search, machine learning, and stream processing. 
+This type of applications are built with a tree based algorithm and adopt a divide-and-conquer strategy. 
+The construction of this type of applications results in many-to-one communication pattern in each layer, which may lead to congestion at the edge switch.
