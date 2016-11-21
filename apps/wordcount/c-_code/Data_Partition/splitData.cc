@@ -121,6 +121,7 @@ int main (int argc, char** argv)
      printf("Your entered file cannot be opened or is empty.\n"); 
     }
 
+
     /*** Start recording time ***/
     T_type t_start = chrono::high_resolution_clock::now();
 
@@ -148,16 +149,15 @@ writeTimespanToFile(const T_type& t_start, const T_type& t_end,
     chrono::duration<double> time_span =
         chrono::duration_cast<chrono::duration<double>> (t_end - t_start);
     stringstream timespanStream;
-    timespanStream << time_span.count(); // converts time into a tring
+    timespanStream << time_span.count() << "\n"; // converts time into a tring
 
-    string writeString("Dataset size = ");
-    writeString.append(datasetSize).append(", data chunk size = ")
-    .append(chunkSize).append(" bytes. Time: ").append(timespanStream.str())
-    .append(" seconds\n"); // create a line for the text file
+    string writeString(datasetSize);
+    writeString.append(",")
+    .append(chunkSize).append(",")
+    .append(timespanStream.str()); // create a line for the text file
 
     ofstream file(filename, ios_base::app); // append times
     file.write(writeString.c_str(), writeString.size()); // write to the file
 
     file.close();
 }
-
