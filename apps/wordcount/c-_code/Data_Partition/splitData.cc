@@ -68,7 +68,6 @@ void partitionData(const size_t DATA_CHUNK_SIZE, vector<string>& file_data)
  
   size_t size = 0; // the size of the current chunk (in bytes)
   const size_t SIZE_OF_NULL_CHAR = sizeof('\0'); // we need this since strings in C++ are char arrays with a null char
-  size_t index = 0; // chunk index
 
   vector< vector<string> > chunks; // a vector for storing chunks in memory
   chunks.push_back(vector<string>());
@@ -80,13 +79,12 @@ void partitionData(const size_t DATA_CHUNK_SIZE, vector<string>& file_data)
     {
       size = 0;
       chunks.push_back(vector<string>()); // new chunk
-      index++;
       continue; // this chunk is full
     }
 
     // read a word into the chunk 
     size += (file_data.begin()->size() + SIZE_OF_NULL_CHAR);
-    chunks[index].push_back(std::move(*file_data.begin())); // use the move constructor == much faster
+    chunks.back().push_back(std::move(*file_data.begin())); // use the move constructor == much faster
     file_data.erase(file_data.begin()); // erase the first element
   }// for
 
