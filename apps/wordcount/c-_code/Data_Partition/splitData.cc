@@ -3,15 +3,16 @@
 #include <sstream>
 #include <fstream>
 #include <algorithm>
-#include <vector>
+#include <list>
 #include <iterator>
 #include <chrono>
+
 
 
 using namespace std;
 
 typedef std::chrono::high_resolution_clock::time_point T_type;
-
+typedef std::list<string>::iterator StrItr;
 
 //#define DATA_CHUNK_SIZE 16 // data chunks in bytes (Hadoop uses 64MB default)
 #define MIN_CHUNK_SIZE 16 // chunk must be at least 16-byte size.
@@ -21,10 +22,10 @@ writeTimespanToFile(const T_type& t_start, const T_type& t_end,
                     const char* const filename, const char* const chunkSize, const char* const dataSize);
 
 
-vector<string> splitString(const string& line) // splits a string into separate words (uses a spcace to split)
+list<string> splitString(const string& line) // splits a string into separate words (uses a spcace to split)
 {
     istringstream buffer(line);
-    vector<string> ret((istream_iterator< string >(buffer)), 
+    list<string> ret((istream_iterator< string >(buffer)), 
                                  istream_iterator< string >());
     return ret;
   
@@ -39,10 +40,9 @@ bool punctValue(const int ch)
 
 
 // read data into memory and then start processing in memory
-vector<string> readIntoMemory(const char* const FILE_NAME)
+void readIntoMemory(list<string>& words, const char* const FILE_NAME)
 {
   string line;
-  vector<string> words;
   
   ifstream input_file(FILE_NAME, ios_base::in); // open the data file
  
@@ -51,44 +51,51 @@ vector<string> readIntoMemory(const char* const FILE_NAME)
     while(getline(input_file, line, '\n'))
     {
       line.erase(remove_if(line.begin (), line.end (), punctValue), line.end()); // get rid of punctuation signs
-      vector<string> line_words = splitString(line); // get a vector of words on this line
-      words.insert(words.end(), line_words.begin(), line_words.end()); // append to the word vector
+      list<string> line_words = splitString(line); // get a list of words on this line
+      words.insert(words.end(), line_words.begin(), line_words.end()); // append to the word list
     }
  
     input_file.close();
   }
   
-   return words; // return loaded words into memory
 }
 
 
-// No need to write to a file. Store everything in vectors
-void partitionData(const size_t DATA_CHUNK_SIZE, vector<string>& file_data)
+// No need to write to a file. Store everything in lists
+void partitionData(const size_t DATA_CHUNK_SIZE, list<string>& file_data)
 { 
- 
+
   size_t size = 0; // the size of the current chunk (in bytes)
   const size_t SIZE_OF_NULL_CHAR = sizeof('\0'); // we need this since strings in C++ are char arrays with a null char
 
-  vector< vector<string> > chunks; // a vector for storing chunks in memory
-  chunks.push_back(vector<string>());
+  list< list<string> > chunks; // a list for storing chunks in memory
+  chunks.push_back(list<string>());
+  
+  StrItr itr = file_data.begin(), itr_2 = file_data.begin();
+  itr_2++; // move one further since we need to a reference to the next node in this list  
 
-
-  for(; file_data.begin() != file_data.end(); )
+ 
+  while(itr != file_data.end())
   { 
-    if((size + file_data.begin()->size()) > DATA_CHUNK_SIZE)
+    if((size + itr->size() + SIZE_OF_NULL_CHAR) > DATA_CHUNK_SIZE)
     {
       size = 0;
-      chunks.push_back(vector<string>()); // new chunk
+      chunks.push_back(list<string>()); // new chunk
       continue; // this chunk is full
     }
 
     // read a word into the chunk 
     size += (file_data.begin()->size() + SIZE_OF_NULL_CHAR);
-    chunks.back().push_back(std::move(*file_data.begin())); // use the move constructor == much faster
-    file_data.erase(file_data.begin()); // erase the first element
-  }// for
+    chunks.back().push_back(std::move(*itr)); // use the move constructor == much faster
 
-   /*chunks vector contains chunks that can be now processed, e.g., send over the network and so on*/ 
+    file_data.erase(itr); // erase the read element
+    
+    // update the iterators
+    itr = itr_2;
+    itr_2++;
+  }// while
+   
+   /*chunks list contains chunks that can be now processed, e.g., send over the network and so on*/ 
 }
 
 
@@ -96,7 +103,7 @@ void partitionData(const size_t DATA_CHUNK_SIZE, vector<string>& file_data)
 int main (int argc, char** argv)
 {
 
-  if(argc == 5) // first argument: chunk_size;  second argument: data_size string; third argument: datafile; fourth argument: timespan file. 
+  if(argc >= 5) // first argument: chunk_size;  second argument: data_size string; third argument: datafile; fourth argument: timespan file. 
   {
     stringstream chunkReader(argv[1]);
    
@@ -112,7 +119,8 @@ int main (int argc, char** argv)
 
 
     // Read the input file into memory
-    vector<string> data_file(readIntoMemory(argv[3]));
+    list<string> data_file;
+    readIntoMemory(data_file, argv[3]); // pass a reference 
 
     if(data_file.empty())
     {
