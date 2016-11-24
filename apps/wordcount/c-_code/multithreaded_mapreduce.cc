@@ -1,5 +1,4 @@
-// Compile by "~$(pwd):g++ -o multithreaded_mr -std=c++11 multithreaded_mapreduce.cc -lpthread"
-// "~$(pwd):./multithreaded_mr DATA_FOLDER #NUM_THREADS"
+// Compile by "~$(pwd):g++ -std=c++11 multithreaded_mapreduce.cc -lpthread"
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -17,6 +16,14 @@
 #include <set>
 
 #include <dirent.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
+#define SERVER "127.0.0.1"
+#define BUFLEN 512
+#define PORT 9999
 
 using namespace std;
 
@@ -112,17 +119,28 @@ vector<string> load_data(vector<string> const & file_names) {
 
 void mapper(VectorIter start,
         VectorIter end,
-        vector<vector<string> > & reduce_bins,
-        unsigned long const num_bins) {
-    for (VectorIter i = start; i != end; ++i ) {
+        vector<vector<string> > & intermediate_bins,
+        unsigned long const num_bins,
+        vector<mutex> & my_mapper_locks) {
+    for (VectorIter i = start; i != end; ++i) {
         string word = *i;
         size_t hashed_val = hash<string>{} (word);
         int bin_id = hashed_val % num_bins;
 
         // insert word into corresponding reduce bin
-        my_mapper_lock.lock();
-        reduce_bins[bin_id].push_back( word );
-        my_mapper_lock.unlock();
+        // my_mapper_locks[bin_id].lock();
+        intermediate_bins[bin_id].push_back( word );
+        // my_mapper_locks[bin_id].unlock();
+    }
+}
+
+void shuffle_to_reducers(vector<vector<vector<string> > > const & intermediate_bins,
+        vector<string > & reduce_bin,
+        unsigned long const bin_id) {
+    for (const auto & inter: intermediate_bins) {
+        for (const auto & word: inter[bin_id]) {
+            reduce_bin.push_back( word );
+        }
     }
 }
 
@@ -164,6 +182,40 @@ void reducer(vector<vector<string> > const & reduce_bins,
 }
 
 
+void udp_send(vector<vector<string> > const & reduce_bins) {
+    struct sockaddr_in si_server;
+    int s, i, slen = sizeof(si_server);
+    char buf[BUFLEN];
+
+    if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1) {
+        perror("socket");
+        exit(1);
+    }
+
+    memset((char *) &si_server, 0, sizeof(si_server));
+    si_server.sin_family = AF_INET;
+    si_server.sin_port = htons(PORT);
+
+    if (inet_aton(SERVER, &si_server.sin_addr)==0) {
+        perror("inet_aton() failed\n");
+        exit(1);
+    }
+
+    for (const auto& bin: reduce_bins) {
+        for (const auto& bin_word: bin) {
+            if (sendto(s,
+                       bin_word.c_str(),
+                       bin_word.size(),
+                       0,
+                       (struct sockaddr*) &si_server,
+                       slen)==-1) {
+                perror("sendto()");
+                exit(1);
+            }
+        }
+    }
+}
+
 void display_vector(vector<string> const & this_vec) {
     cout << '\t' << '\t';
     for (const auto& v: this_vec) {
@@ -179,6 +231,18 @@ void display_reduce_bins(vector<vector<string> > const & reduce_bins) {
             cout << v << ' ';
         }
         cout << '\n';
+    }
+    cout << '\n';
+}
+
+void display_reduce_bins_bytes(vector<vector<string> > const & reduce_bins) {
+    cout << '\t' << "Bins Size (Bytes):" << ' ';
+    for (const auto& bin: reduce_bins) {
+        int cur_size = 0;
+        for (const auto& bin_word: bin) {
+            cur_size += bin_word.length();
+        }
+        cout <<  cur_size << ' ';
     }
     cout << '\n';
 }
@@ -222,8 +286,9 @@ int main (int argc, char* argv[]) {
     vector<string> files;
     files = list_dir(argv[1]);
     unsigned long const num_files = files.size();
-    unsigned long const num_mappers = num_threads;
-    unsigned long const num_reducers = num_threads;
+    const unsigned long num_mappers = num_threads;
+    const unsigned long num_reducers = num_threads;
+    vector<vector<vector<string> > > intermediate_bins(num_reducers, vector<vector<string> >(num_reducers));
     vector<vector<string> > reduce_bins(num_reducers);
     vector<vector<pair<string, int> > > result_bins(num_reducers);
 
@@ -235,7 +300,7 @@ int main (int argc, char* argv[]) {
 
     /*** Start recording time ***/
     T_type t1 = chrono::high_resolution_clock::now();
-    T_type t_map, t_sort, t_red, t_final;
+    T_type t_map, t_sort, t_red, t_final, t_network;
     /*** mappers threads ***/
     unsigned long const hardware_threads = 
         thread::hardware_concurrency();
@@ -251,21 +316,42 @@ int main (int argc, char* argv[]) {
  
     VectorIter last  = data.end(); 
     VectorIter block_start = first; 
-    for (unsigned long i=0; i < (num_mapper_threads -1); ++i) {
+    vector<mutex> my_mapper_locks(num_reducers);
+    for (unsigned long i=0; i < (num_mapper_threads - 1); ++i) {
         VectorIter block_end = block_start;
         advance(block_end, block_size);
         mapper_threads[i] = thread(
                 mapper,
                 block_start,
                 block_end,
-                ref(reduce_bins),
-                num_reducers);
+                ref(intermediate_bins[i]),
+                num_reducers,
+                ref(my_mapper_locks));
         block_start = block_end;
     }
-    mapper(block_start, last, ref(reduce_bins), num_reducers);
+    mapper(block_start,
+            last,
+            ref(intermediate_bins[num_mapper_threads - 1]),
+            num_reducers,
+            ref(my_mapper_locks));
     for_each( mapper_threads.begin(),
               mapper_threads.end(),
               mem_fn(&thread::join) );
+
+    /*** shuffling threads (ATTENTION: this part is included in MAP step) ***/
+    data = vector<string> ();
+    vector<thread> shuffle_threads(num_reducers);
+    for (unsigned long i=0; i < num_reducers; ++i) {
+        shuffle_threads[i] = thread(
+                shuffle_to_reducers,
+                ref(intermediate_bins),
+                ref(reduce_bins[i]),
+                i
+                );
+    }
+    for_each( shuffle_threads.begin(),
+            shuffle_threads.end(),
+            mem_fn(&thread::join) );
     t_map = print_time(t1, "Map");
 
 
@@ -303,7 +389,13 @@ int main (int argc, char* argv[]) {
 
     /*** summary ***/
     t_final = print_time(t1, "Total Running");
+    display_reduce_bins_bytes( ref(reduce_bins) );
+
+    /*** Send intermediate data to localhost by UDP ***/
+    T_type t_again = chrono::high_resolution_clock::now();
+    udp_send(ref(reduce_bins));
+    cout << endl;
+    t_network = print_time(t_again, "In Network");
 
     return 0;
 }
-
