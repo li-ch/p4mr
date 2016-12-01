@@ -1,2 +1,3 @@
 table_set_default sum_table add_to_sum
-table_set_default forward_to_reducer_table forward_to_reducer
+table_set_default update_map_count_table increment_map_counter
+table_set_default forward_to_dest_table forward_to_dest

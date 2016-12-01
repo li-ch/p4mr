@@ -1,2 +1,0 @@
-table_set_default sum_table add_to_sum
-table_set_default forward_to_reducer_table forward_to_reducer

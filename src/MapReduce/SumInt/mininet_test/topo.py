@@ -34,34 +34,24 @@ parser = argparse.ArgumentParser(description='Mininet demo')
 parser.add_argument('--behavioral-exe', help='Path to behavioral executable',
                     type=str, action="store", required=True)
 parser.add_argument('--json', help='Path to JSON config file',
-                    type=str, action="store", nargs=2, required=True)
+                    type=str, action="store", required=True)
 parser.add_argument('--cli', help='Path to BM CLI',
                     type=str, action="store", required=True)
 
 args = parser.parse_args()
 
 class MyTopo(Topo):
-    def __init__(self, sw_path, json_path, nb_hosts, nb_mappers, nb_reducers, links, **opts):
+    def __init__(self, sw_path, json_path, nb_hosts, nb_switches, links, **opts):
         # Initialize topology and default options
         Topo.__init__(self, **opts)
         
-        json_mappers = json_path[0] # get a reference to the mapper P4 program
-        for i in xrange(nb_mappers):
+        for i in xrange(nb_switches):
             switch = self.addSwitch('s%d' % (i + 1),
                                     sw_path = sw_path,
-                                    json_path = json_mappers,
-                                    thrift_port = _THRIFT_BASE_PORT + i,
+                                    json_path = json_path,
+                                    thrift_port = (_THRIFT_BASE_PORT + i),
                                     pcap_dump = True,
-                                    device_id = i)
-        
-        json_reducers = json_path[1] # get a reference to the reducer P4 program
-        for i in xrange(nb_reducers):
-            switch = self.addSwitch('s%d' % (i + 1 + nb_mappers),
-                                    sw_path = sw_path,
-                                    json_path = json_reducers,
-                                    thrift_port = (_THRIFT_BASE_PORT + i + nb_mappers),
-                                    pcap_dump = True,
-                                    device_id = i + nb_mappers)
+                                    device_id = i )
 
         
         for h in xrange(nb_hosts):
@@ -72,17 +62,12 @@ class MyTopo(Topo):
 
 def read_topo():
     nb_hosts = 0
-    nb_mappers = 0
-    nb_reducers = 0
+    nb_switches = 0   
     links = []
     with open("topo.txt", "r") as f:
         line = f.readline()[:-1]
-        w, nb_mappers = line.split()
-        assert(w == "mappers")
-      
-        line = f.readline()[:-1]
-        w, nb_reducers = line.split()
-        assert(w == "reducers")  
+        w, nb_switches = line.split()
+        assert(w == "switches")
 
         line = f.readline()[:-1]
         w, nb_hosts = line.split()
@@ -91,15 +76,15 @@ def read_topo():
             if not f: break
             a, b = line.split()
             links.append( (a, b) )
-    return int(nb_hosts), int(nb_mappers), int(nb_reducers), links
+    return int(nb_hosts), int(nb_switches), links
 
 
 def main():
-    nb_hosts, nb_mappers, nb_reducers, links = read_topo()
+    nb_hosts, nb_switches, links = read_topo()
 
     topo = MyTopo(args.behavioral_exe,
                   args.json,
-                  nb_hosts, nb_mappers, nb_reducers, links)
+                  nb_hosts, nb_switches, links)
 
     net = Mininet(topo = topo,
                   host = P4Host,
@@ -123,27 +108,11 @@ def main():
     sleep(1)
     
 
-    json_mappers = args.json[0] # a reference to the mapper program
-    for i in xrange(nb_mappers):
-        cmd = [args.cli, "--json", json_mappers,
+    
+    for i in xrange(nb_switches):
+        cmd = [args.cli, "--json", args.json,
                "--thrift-port", str(_THRIFT_BASE_PORT + i)]
         with open("commands.txt", "r") as f:
-            print " ".join(cmd)
-            try:
-                output = subprocess.check_output(cmd, stdin = f)
-                print output
-            except subprocess.CalledProcessError as e:
-                print e
-                print e.output
-
-    sleep(1)
-
-
-    json_reducers = args.json[1] # a reference to the reducer program
-    for i in xrange(nb_reducers):
-        cmd = [args.cli, "--json", json_reducers,
-               "--thrift-port", str(_THRIFT_BASE_PORT + i + nb_mappers)]
-        with open("commands_reducer.txt", "r") as f:
             print " ".join(cmd)
             try:
                 output = subprocess.check_output(cmd, stdin = f)

@@ -29,28 +29,23 @@ class SrcRoute(Packet):
         LongField("preamble", 0),
     ]
 
-
-class CounterPacketPayload(Packet):
-    name = "CounterPacketPayload"
-    fields_desc = [ IntField("counter", 64), ]
-
 class LongIntegerPayload(Packet):
-    name = "CounterPacketPayload"
-    fields_desc = [ LongField("longPayload", 0) ]    
+    name = "LongSingnedPacketPayload"
+    fields_desc = [ LongField("longPayload", 0) ]
+
+class DataId(Packet):
+    name = "DataID"
+    fields_desc = [ IntField("data_id", 0) ]    
+
 
 def read_topo():
     nb_hosts = 0
-    nb_mappers = 0
-    nb_reducers = 0
+    nb_switches = 0
     links = []
     with open("topo.txt", "r") as f:
         line = f.readline()[:-1]
-        w, nb_mappers = line.split()
-        assert(w == "mappers")
-
-        line = f.readline()[:-1]
-        w, nb_reducers = line.split()
-        assert(w == "reducers")
+        w, nb_switches = line.split()
+        assert(w == "switches")
 
         line = f.readline()[:-1]
         w, nb_hosts = line.split()
@@ -59,7 +54,8 @@ def read_topo():
             if not f: break
             a, b = line.split()
             links.append( (a, b) )
-    return int(nb_hosts), int(nb_mappers), int(nb_reducers), links
+    return int(nb_hosts), int(nb_switches), links
+
 
 def ascii_encode(msg):
     encoded = ''
@@ -85,11 +81,14 @@ def word_assemble(msg, msg_size):
     return l
 
 
-def generate_random_long_integer():  
+
+def generate_random_long_integer(counter):  
     
-    randomLong = random.getrandbits(64) # always 64 bits
-       
+    randomLong = random.getrandbits(64) # always 64 bits    
+  
+
     return LongIntegerPayload(longPayload=randomLong) # create a 64-bit integer for a new packet
+
 
 
 def main():
@@ -100,7 +99,7 @@ def main():
 
     src, dst, pkt_type = sys.argv[1:]
 
-    nb_hosts, nb_mappers, nb_reducers, links = read_topo()
+    nb_hosts, nb_switches, links = read_topo()
 
     port_map = {}
 
@@ -138,35 +137,32 @@ def main():
         port_str += chr(p)
 
     while(1):
-        
-        
+        msg = raw_input("What do you want to send: ")
+       
         FIXED_INTEGER_NUMBER = 64 # has to be taken from headers.p4 
         
         p = SrcRoute()
         
-        # add a number of 64-bit unsigned integers
+        # add a few 64-bit signed integers
         counter = 0
         while counter <  FIXED_INTEGER_NUMBER:
-            p.add_payload(generate_random_long_integer())
+            p.add_payload(generate_random_long_integer(counter))
             counter = counter + 1 
-
-        # add a counter and flags
-        p.add_payload(CounterPacketPayload(counter=FIXED_INTEGER_NUMBER))
+        
+        p.add_payload(DataId(data_id=FIXED_INTEGER_NUMBER))
         p.add_payload(flag_assemble(pkt_type))
-  
-        
-        print p.show()  # print msg
-       
+            
+
+        #FIX_WORD_SIZE = 5
+        #p = SrcRoute() / \
+        #        word_assemble(msg, FIX_WORD_SIZE) / \
+        #        flag_assemble(pkt_type) / \
+        #        msg
+                
+
+        print p.show()
         sendp(p, iface = "eth0")
-
-        msg = raw_input("Do you want to send another packet (yes/no) ?  ")
-        
-        if msg != "yes":
-            break  
-
-        pkt_type = raw_input("Please enter the type of a new packet (0 - data, 1 - reduce): ")      
-
-       
+        # print msg
 
 if __name__ == '__main__':
     main()
