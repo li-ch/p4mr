@@ -20,6 +20,8 @@ limitations under the License.
 
 #define OUTPUT_PORT 4 
 #define NUM_OF_MAPPERS 3
+#define NUM_OF_APPS 100
+
 
 header_type ingress_metadata_t {
     fields {
@@ -38,17 +40,23 @@ metadata ingress_metadata_t ingress_metadata;
 register integer_sum_register {
 
   width : NUMBER_SIZE; // constants from headers.p4
-  instance_count : 1;
+  instance_count : NUM_OF_APPS;
 }
 
 
 // register file for storing the number of packets that were forwarded from mappers
 register count_mappers_register {
   width : COUNTER_SIZE; // constant from headers.p4
-  instance_count : 1;
+  instance_count : NUM_OF_APPS;
 }
 
-action add_to_sum() {
+
+action no_op() { // do nothing
+
+}
+
+
+action add_to_sum(_index) {
 
   // perform a particular number of additions (do not use resubmit since it is 
   // theoretically a slower way of implementing the same functionality).
@@ -143,9 +151,9 @@ action add_to_sum() {
   /************************************************* Long code ends here ******************************************/
  
   // load the current sums and update them by the integers of the given packet
-  register_read(ingress_metadata.temp_sum, integer_sum_register, 0); // only one instance of this 
+  register_read(ingress_metadata.temp_sum, integer_sum_register, _index); // use a parameter 
   add_to_field(ingress_metadata.temp_sum, number_header.number_value_1); // add the current sum to the summed value of data
-  register_write(integer_sum_register, 0, ingress_metadata.temp_sum); // update register file
+  register_write(integer_sum_register, _index, ingress_metadata.temp_sum); // update register file
     
 
   // don't forward the packet
@@ -153,45 +161,68 @@ action add_to_sum() {
 }
 
 table sum_table {
+  
+  reads {
+   number_header.data_id : exact;
+  }
+
   actions {
     add_to_sum;
+    no_op;
   }
+
+  size : NUM_OF_APPS;
 }
 
 
 
-action increment_map_counter() {
+action increment_map_counter(_index) {
   
   // increment the number of received packets from mappers
-  register_read(ingress_metadata.temp_counter, count_mappers_register, 0); // only one instance of this 
+  register_read(ingress_metadata.temp_counter, count_mappers_register, _index); // index is a parameter 
   add_to_field(ingress_metadata.temp_counter, 1); // increment the counter by 1
-  register_write(count_mappers_register, 0, ingress_metadata.temp_counter); // update register file  
+  register_write(count_mappers_register, _index, ingress_metadata.temp_counter); // update register file  
 }
 
 table update_map_count_table {
+  
+  reads {
+     number_header.data_id : exact;
+  } 
+ 
   actions {
     increment_map_counter;
+    no_op;
   }
+  
+  size : NUM_OF_APPS;
 }
 
-action forward_to_dest() {
+action forward_to_dest(_index) {
   // forwarding is done pretty simply
 
   // 1. Read the sum register file and store the value in the received packet
-  register_read(number_header.number_value_1, integer_sum_register, 0); // only one instance of this
-  register_write(integer_sum_register, 0, 0); // clear the register file
+  register_read(number_header.number_value_1, integer_sum_register, _index); // index used
+  register_write(integer_sum_register, _index, 0); // clear the register file
   
   // 2. Clear reduce requests
-  register_write(count_mappers_register, 0, 0); // update register file
+  register_write(count_mappers_register, _index, 0); // update register file
 
   modify_field(standard_metadata.egress_spec, OUTPUT_PORT); // update the output port number (forward)
 } 
 
 table forward_to_dest_table {
-  actions {
-    forward_to_dest; // forward to a server
+ 
+  reads {
+    number_header.data_id : exact;
   }
 
+  actions {
+    forward_to_dest; // forward to a server
+    no_op;
+  }
+
+  size : NUM_OF_APPS;
 }
 
 

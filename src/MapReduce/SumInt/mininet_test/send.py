@@ -92,12 +92,12 @@ def generate_random_long_integer(counter):
 
 
 def main():
-    if len(sys.argv) != 4:
-        print "Usage: send.py [this_host] [target_host] [pkt_type]"
-        print "For example: send.py h1 h3 0"
+    if len(sys.argv) != 5:
+        print "Usage: send.py [this_host] [target_host] [pkt_type] [_data_id]"
+        print "For example: send.py h1 h3 0 64"
         sys.exit(1)
 
-    src, dst, pkt_type = sys.argv[1:]
+    src, dst, pkt_type, _data_id = sys.argv[1:]
 
     nb_hosts, nb_switches, links = read_topo()
 
@@ -149,7 +149,7 @@ def main():
             p.add_payload(generate_random_long_integer(counter))
             counter = counter + 1 
         
-        p.add_payload(DataId(data_id=FIXED_INTEGER_NUMBER))
+        p.add_payload(DataId(data_id=int(_data_id, 10)))
         p.add_payload(flag_assemble(pkt_type))
             
 

@@ -1,3 +1,9 @@
-table_set_default sum_table add_to_sum
-table_set_default update_map_count_table increment_map_counter
-table_set_default forward_to_dest_table forward_to_dest
+table_set_default sum_table no_op
+table_set_default update_map_count_table no_op
+table_set_default forward_to_dest_table no_op
+table_add sum_table add_to_sum 0x00000001 => 0
+table_add update_map_count_table increment_map_counter 0x00000001 => 0
+table_add forward_to_dest_table forward_to_dest 0x00000001 => 0
+table_add sum_table add_to_sum 0x00000040 => 1 
+table_add update_map_count_table increment_map_counter 0x00000040 => 1
+table_add forward_to_dest_table forward_to_dest 0x00000040 => 1
