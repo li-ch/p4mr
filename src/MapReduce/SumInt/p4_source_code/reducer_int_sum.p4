@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "includes/headers_reducer.p4"
-#include "includes/parser_reducer.p4"
+#include "includes/headers.p4"
+#include "includes/parser.p4"
 
 
 #define OUTPUT_PORT 4 
@@ -25,8 +25,7 @@ header_type ingress_metadata_t {
     fields {
        
         // Below are the values used for the MapReduce app
-        temp_counter : COUNTER_SIZE; // a counter that has two functions: (1) stores the number of valid numbers for mean; 
-                                     // (2) used for knowing how many mappers have sent a request to reduce.
+        temp_counter : COUNTER_SIZE; // a counter is used for knowing how many mappers have sent a request to reduce.
         temp_sum : NUMBER_SIZE (signed); // for storing temporarily the current sums of integers
     }
 }
@@ -40,14 +39,6 @@ register integer_sum_register {
 
   width : NUMBER_SIZE; // constants from headers.p4
   instance_count : 1;
-}
-
-
-// register file for storing the number of integers received
-register integer_count_register {
-  
-  width : COUNTER_SIZE; // constant from headers.p4
-  instance_count : 1;  
 }
 
 
@@ -151,12 +142,6 @@ action add_to_sum() {
 
   /************************************************* Long code ends here ******************************************/
  
-   // just take the number of integers and add it to the counter
-  register_read(ingress_metadata.temp_counter, integer_count_register, 0); // only one instance of this 
-  add_to_field(ingress_metadata.temp_counter, number_header.num_of_numbs); // increment the counter of the received word
-  register_write(integer_count_register, 0, ingress_metadata.temp_counter); // update register file
-
-  
   // load the current sums and update them by the integers of the given packet
   register_read(ingress_metadata.temp_sum, integer_sum_register, 0); // only one instance of this 
   add_to_field(ingress_metadata.temp_sum, number_header.number_value_1); // add the current sum to the summed value of data
@@ -196,14 +181,8 @@ action forward_to_dest() {
   register_read(number_header.number_value_1, integer_sum_register, 0); // only one instance of this
   register_write(integer_sum_register, 0, 0); // clear the register file
   
-
-  // 2. Read the counter value and store it in the received packet 
-  register_read(number_header.num_of_numbs, integer_count_register, 0); // only one instance of this 
-  register_write(integer_count_register, 0, 0); // clear the register file
-
-  // 3. Clear mapper counter
-  register_write(count_mappers_register, 0, 0); // update register file  
-
+  // 2. Clear reduce requests
+  register_write(count_mappers_register, 0, 0); // update register file
 
   modify_field(standard_metadata.egress_spec, OUTPUT_PORT); // update the output port number (forward)
 } 
