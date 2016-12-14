@@ -23,9 +23,10 @@
 
 
 \" {BEGIN(PATH_DEF);}
-<PATH_DEF>.+[^" ]+ {yylval.s.d_type = PATH_STRING; yylval.s.name = yytext; return NAME;}
+<PATH_DEF>.+[^" ]+ {yylval.s->d_type = PATH_STRING; yylval.s->name = yytext; return NAME;}
 <PATH_DEF>\" {BEGIN(INITIAL);}
-<PATH_DEF>[\n \t<<EOF>>]+ {printf("%s:%d: No line breaks in the data path\n", curfilename, yylineno); return 0;}
+<PATH_DEF>[\n \t]+ {printf("%d: No line breaks in the data path\n", yylineno); return 0;}
+<PATH_DEF><<EOF>> {printf("%d: No line breaks in the data path\n", yylineno); return 0;}
 
 
 <VAR_STATE>[ \t]*"uint8_t"[ \t]* {yylval.m_type = UINT_8; return VAR_TYPE;}
@@ -38,12 +39,11 @@
 <VAR_STATE>[ \t]*"int64_t"[ \t]*  {yylval.m_type = INT_64;  return VAR_TYPE;} 
 
 <VAR_STATE>">" {BEGIN(INITIAL); return yytext[0];}
-<VAR_STATE> [.<<EOF>>\n]+ {printf("%s:%d: Untermined data type\n",
-curfilename, yylineno); return 0;}
+<VAR_STATE>\n+|.+ {printf("%d: Untermined data type\n", yylineno); return 0;}
+<VAR_STATE><<EOF>> {printf("%d: Untermined data type\n", yylineno); return 0;}
 
 
-
-[_a-zA-Z][_a-zA-Z0-9]* { yylval.s.name = yytext; return NAME; }
+[a-zA-Z][_a-zA-Z0-9]* { yylval.s->name = yytext; return NAME; }
 
 "//".*\n /*only one type of comments*/
 
@@ -56,4 +56,6 @@ curfilename, yylineno); return 0;}
 . { yyerror("Mystery character %c\n", *yytext); }
 %%
 
+/*{printf("%s:%d: Untermined data type\n",
+curfilename, yylineno); return 0;}*/
 
