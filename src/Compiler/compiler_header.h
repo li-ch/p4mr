@@ -10,7 +10,8 @@
  * The pre-processor and lexer are combined into one flex file that uses two scanners.
 */
 
-
+#ifndef COMPILER_TEST_H
+#define COMPILER_TEST_H
 enum data_type {
  UINT_8 = 1008,
  INT_8,
@@ -28,7 +29,8 @@ enum data_type {
 enum node_type {
  ASSM_TYPE, /* assignment */
  FUNC_TYPE, /* function with data type */ 
-}
+};
+
 
 
 
@@ -87,7 +89,7 @@ struct func_arg {
 
 
 struct ast{
-  enum node_type type; /*  node type */
+  enum node_type n_type; /*  node type */
 };
 
 // controls the structure of an AST
@@ -121,15 +123,14 @@ struct tree_struct* newstmtlist ();
 void treefree(struct tree_struct* root);
 
 struct func_arg* newarglist(struct symbol* sym, struct func_arg* next);
-void print_tree(const struct tree_struct* const root) const;
+void print_tree(const struct tree_struct* const root) ;
 
 
 /* interface to the compiler lexer */
 extern int yylineno; /* from lexer */
 void yyerror(char* s, ...);
-enum data_type get_data_type(const char*);
 
-
+#endif
 
 
 

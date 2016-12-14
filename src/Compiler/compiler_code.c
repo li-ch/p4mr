@@ -24,7 +24,7 @@ init_symbol_table ()
 /* symbol table */
 /* hash a symbol */
 static unsigned
-symhash(const char * const sym)
+symhash(const char * sym)
 {
   unsigned int hash = 0;
   unsigned c;
@@ -66,9 +66,7 @@ lookup(const char* const sym)
     }
 
     (cur->entry)->name = strdup(sym);  
-    (cur->entry)->type = UINT_8;
-    (cur->entry)->func = NULL;
-    (cur->entry)->syms = NULL;
+    (cur->entry)->d_type = UINT_8;
     cur->next = NULL; // next node is NULL for termination of the linked list
     if(prev) 
     {  
@@ -87,9 +85,9 @@ treefree recursively walks an AST and frees all of the nodes in the tree.
 
 
 struct ast*
-newfunctype(struct symbol* sym, enum data_type d_type, struct fun_arg* args)
+newfunctype(struct symbol* sym, enum data_type d_type, struct func_arg* args)
 {
-  struct fun_call* ptr = malloc(sizeof(struct fun_call));
+  struct func_call* ptr = malloc(sizeof(struct func_call));
 
    if(!ptr) 
    {
@@ -97,7 +95,7 @@ newfunctype(struct symbol* sym, enum data_type d_type, struct fun_arg* args)
      exit(0);
    }
 
-  ptr->type = FUNC_TYPE; /*function with type*/
+  ptr->n_type = FUNC_TYPE; /*function with type*/
   sym->d_type = d_type;
   ptr->f_name = sym;
   ptr->sym_list = args;
@@ -108,9 +106,9 @@ newfunctype(struct symbol* sym, enum data_type d_type, struct fun_arg* args)
 
 
 struct ast* 
-newfuncnotype(struct symbol* sym, struct fun_arg* args)
+newfuncnotype(struct symbol* sym, struct func_arg* args)
 {
-  return (newfunctype(sym, args->d_type, args));
+  return (newfunctype(sym, (args->sym)->d_type, args));
 }
 
 
@@ -125,8 +123,8 @@ newasgn(struct symbol* sym, struct ast* exp)
    exit(0);
  }
 
-  ptr->type = ASSM_TYPE; /* assignment type */
-  if(exp -> type == FUNC_TYPE)
+  ptr->n_type = ASSM_TYPE; /* assignment type */
+  if(exp -> n_type == FUNC_TYPE)
   {
     struct func_call* det_type = (struct func_call* ) exp;
     sym->d_type = det_type->f_name->d_type; /*assign data type from the function call*/
@@ -156,7 +154,7 @@ newstmtlist ()
    exit(0);
  }
 
-  stm->sub_tree = NULL:
+  stm->sub_tree = NULL;
   stm->next = NULL;
 
   return stm;
@@ -165,9 +163,9 @@ newstmtlist ()
 
 /* creates an argument node */
 struct func_arg* 
-newarglist(struct symbol* pass_sym, struct fun_arg* next_arg)
+newarglist(struct symbol* pass_sym, struct func_arg* next_arg)
 {
-  struct func_arg* arg = malloc(sizeof(func_arg));
+  struct func_arg* arg = malloc(sizeof(struct func_arg));
   
   if(!arg)
   {
@@ -176,7 +174,7 @@ newarglist(struct symbol* pass_sym, struct fun_arg* next_arg)
   }
 
   arg->sym = pass_sym;
-  arg->next = next_arg;
+  arg->next_arg = next_arg;
 
   return arg; 
 }
@@ -186,8 +184,8 @@ newarglist(struct symbol* pass_sym, struct fun_arg* next_arg)
 void
 free_symbol(struct symbol* sym)
 {
-  free(name);
-  fee(sym);
+  free(sym->name);
+  free(sym);
   sym = NULL;
 }
 
@@ -205,7 +203,7 @@ void free_func_arg(struct func_arg* list)
   
   do /* walk the list and release memory */
   {
-    temp = list->next;
+    temp = list->next_arg;
 
     free_symbol(list->sym); /*free symbol*/
     free(list); /*free argument node */
@@ -234,9 +232,9 @@ free_func(struct ast* temp)
 void 
 free_assign(struct ast* temp)
 {
- struct func_asgn* assignment = (struct asgn*) temp;
+ struct asgn* assignment = (struct asgn*) temp;
  free_symbol(assignment->lhs); /* delete function name */
- free_func(assignmnet->expr); /* delete the right hand side -- function */
+ free_func(assignment->expr); /* delete the right hand side -- function */
  
  free(assignment); /* free the node itself */
  
@@ -252,12 +250,12 @@ treefree(struct tree_struct* node)
   
   treefree(node->next); // recursively go to the end of the tree
   
-  switch(node->sub_tree->type) // check what's the node type (type of the statement branch)
+  switch(node->sub_tree->n_type) // check what's the node type (type of the statement branch)
   {
     case ASSM_TYPE : {free_assign(node->sub_tree); break;}
     case FUNC_TYPE : {free_func(node->sub_tree); break;}
  
-    default: { printf("internal error: free bad node %c\n", node->sub_tree->type);}
+    default: { printf("internal error: free bad node %c\n", node->sub_tree->n_type);}
  }
 
  free(node); /* always free the node itself */
@@ -294,14 +292,14 @@ print_func_args(const struct func_arg* const arg)
       arg_sym[7*scalar* + i] = *(par+i); // read a char 
     }
     
-    ptr = ptr->next; 
+    ptr = ptr->next_arg; 
     scalar++;
   }
 
   return arg_sym;
 }
 
-void print_func(const struct ast* const temp) const
+void print_func(const struct ast* const temp) 
 {
   const struct func_call * const stm = (const struct func_call * const) temp;
   char* args = print_func_args(stm->sym_list);
@@ -313,9 +311,9 @@ void print_func(const struct ast* const temp) const
 
 /*print an assignment*/
 void
-print_assign(const struct ast* const temp) const
+print_assign(const struct ast* const temp)
 {
-   const struct asgn* const st = (const struct asg* const) temp;
+   const struct asgn* const st = (const struct asgn* const) temp;
    
    printf("%s = ", st->lhs->name);
    print_func(st->expr); // print the function
@@ -329,12 +327,12 @@ print_tree (const struct tree_struct* const node)
   if(!node) return;
   
   printf("stmt_list -------------- ");
-  switch(node->sub_tree->type) // check what's the node type (type of the statement branch)
+  switch(node->sub_tree->n_type) // check what's the node type (type of the statement branch)
   {
     case ASSM_TYPE : {print_assign(node->sub_tree); break;}
     case FUNC_TYPE : {print_func(node->sub_tree); break;}
  
-    default: { printf("internal error: free bad node %c\n", node->sub_tree->type);}
+    default: { printf("internal error: free bad node %c\n", node->sub_tree->n_type);}
   }
 
   printf("\n"); // print a new line
