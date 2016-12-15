@@ -4,15 +4,17 @@
 # include <stdlib.h>
 # include "compiler_header.h"
 
-Tree* root; /*global reference to the AST*/
+Program* root; /*global reference to the AST*/
 %}
+
 
 %union {
  Ast* ast;
- Symbol* symbol; /* which symbol */
+ Symbol symbol; /* which symbol */
  Func_Arg* arg; /*argument list*/
  Data_Type d_type; /*type of a var/function*/
  Tree* statement; /*a node for a statement to build an AST*/
+ Program* program; /*the pointer that points to the root of the tree*/
 }
 
 
@@ -24,9 +26,10 @@ Tree* root; /*global reference to the AST*/
 /*%token IF ELSE*/
 
 
-%type <ast> stmt expr func
-%type <statement> stmtlist
+%type <ast> stmt expr func 
+%type <statement> stmtlist 
 %type <arg> symlist
+%type <program> beg_compile
 
 
 %start beg_compile
@@ -36,64 +39,76 @@ Tree* root; /*global reference to the AST*/
 
 /*beginning of the compiler rules*/
 
-beg_compile: stmtlist { root = $1; root->m_node = $1->m_node; root->m_next = $1->m_next; }
+beg_compile: stmtlist { printf("beg_compile:\n"); $$ = new_program($1); copy_prog(root, $$); }      
     ;
 
 
-stmtlist: stmt { $$->m_node = $1; $$->m_next = NULL; }
-    | stmtlist stmt { $$->m_node = $2; $$->m_next = $1; } 
+stmtlist: stmtlist stmt {printf("stmtlist: stmtlist stmt\n"); $$->m_node = $2; $$->m_next = $1; } 
+        | %empty { printf("stmtlist: empty\n"); $$ = malloc(sizeof(Tree));}
+        ;
+
+
+stmt: NAME ":=" expr {printf("stmt: NAME := expr\n"); $$ = newassign(&$1, $3); free($1.m_name); $1.m_name = NULL; }
+    | func { printf("stmt: func\n"); $$ = $1; }
     ;
 
 
-stmt: NAME ":=" expr { $$ = newassign($1, $3); }
-    | func { $$ = $1; }
+expr: func {printf("expr: func\n"); $$ = $1; }
+    | NAME '(' symlist ')' ';' { printf("expr: NAME (symlist);\n"); $$ = newfuncnotype(&$1, $3); free($1.m_name); $1.m_name = NULL; }
     ;
 
 
-expr: func { $$ = $1; }
-    | NAME '(' symlist ')' ';' { $$ = newfuncnotype($1, $3); }
+func: NAME '<' VAR_TYPE '>' '(' symlist ')' ';' { printf("func: NAME <VAR_TYPE> (symlist);\n"); $$ = newfunctype(&$1, $3, $6); free($1.m_name); $1.m_name = NULL; }
     ;
 
 
-func: NAME '<' VAR_TYPE '>' '(' symlist ')' ';' { $$ = newfunctype($1, $3, $6); }
-    ;
-
-
-symlist: NAME { $$ = newarglist($1, NULL); }
-       | NAME ',' symlist { $$ = newarglist($1, $3); }
-       | %empty { $$ = NULL; }
+symlist: NAME {printf("symlist: NAME\n"); $$ = newarglist(&$1, NULL); free($1.m_name); $1.m_name = NULL; }
+       | NAME ',' symlist {printf("symlist: NAME, symlist\n"); $$ = newarglist(&$1, $3); free($1.m_name); $1.m_name = NULL; }
+       | %empty { printf("symlist: empty"); }
        ;
 
 
 %%
 
+/*stmt {printf("stmtlist: stmt\n"); $$->m_node = $1; $$->m_next = NULL; }*/
 int main(int argc, char** argv)
 {
 
  if(argc < 2)
  {
-   printf("Please input a source file for reading"); 
+   printf("Please input a source file for reading.\n"); 
    return 1;
  } 
 
  FILE* file = fopen(argv[1], "r");
  if(!file) 
  {
-  printf("No such file, %s, or it is not in the same directory", argv[1]); 
+  printf("No such file found: \"%s\"\n", argv[1]); 
   return 1;
  } 
  yyin = file;
+ 
+ root = malloc(sizeof(Program));
+ root->m_title = argv[1];
+
+ printf("Parsing and building of the AST for \"%s\" begins now...\n", argv[1]);
 
  /*parse the entire file*/
- do
- {
+do
+{
    yyparse();
  }while(!feof(yyin));
 
- /*print an AST first and then delete it */
- print_tree(root);
- treefree(root);
 
+
+ printf("Done!\n");
+
+ /*print an AST first and then delete it */
+ print_program(root);
+ deallocate_tree(root);
+ 
+ fclose(file); /* close the source file */ 
+ 
  return 0;
 }
 

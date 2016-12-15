@@ -23,7 +23,7 @@
 
 
 \" {BEGIN(PATH_DEF);}
-<PATH_DEF>.+[^" ]+ {yylval.symbol->m_type = PATH_STRING; yylval.symbol->m_name = yytext; return NAME;}
+<PATH_DEF>.+[^" ]+ {yylval.symbol.m_type = PATH_STRING; yylval.symbol.m_name = malloc(sizeof(char) * strlen(yytext)); strcpy(yylval.symbol.m_name, yytext); return NAME;}
 <PATH_DEF>\" {BEGIN(INITIAL);}
 <PATH_DEF>[\n \t]+ {printf("%d: No line breaks in the data path\n", yylineno); return 0;}
 <PATH_DEF><<EOF>> {printf("%d: No line breaks in the data path\n", yylineno); return 0;}
@@ -43,7 +43,7 @@
 <VAR_STATE><<EOF>> {printf("%d: Untermined data type\n", yylineno); return 0;}
 
 
-[a-zA-Z][_a-zA-Z0-9]* { yylval.symbol->m_name = yytext; return NAME; }
+[a-zA-Z][_a-zA-Z0-9]* { yylval.symbol.m_name = malloc(sizeof(char) * strlen(yytext)); strcpy(yylval.symbol.m_name, yytext); return NAME; }
 
 "//".*\n /*only one type of comments*/
 
@@ -55,7 +55,3 @@
 
 . { yyerror("Mystery character %c\n", *yytext); }
 %%
-
-/*{printf("%s:%d: Untermined data type\n",
-curfilename, yylineno); return 0;}*/
-

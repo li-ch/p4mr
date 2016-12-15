@@ -85,7 +85,7 @@ treefree recursively walks an AST and frees all of the nodes in the tree.
 
 
 Ast*
-newfunctype(Symbol* sym, Data_Type d_type, Func_Arg* args)
+newfunctype(const Symbol* const sym, Data_Type d_type, Func_Arg* args)
 {
 
   Ast* ptr = malloc(sizeof(Ast)); /*create an AST node*/
@@ -99,7 +99,9 @@ newfunctype(Symbol* sym, Data_Type d_type, Func_Arg* args)
 
   ptr->m_type = FUNC_TYPE; /*function with type*/
   
-  data->m_id = sym;
+  data->m_id = malloc(sizeof(Symbol)); // allocate a symbol
+  data->m_id->m_name = malloc(sizeof(char) * strlen(sym->m_name)); // allocate for string
+  strcpy(data->m_id->m_name, sym->m_name); // copy the string
   data->m_id->m_type = d_type; // set a data type
   data->m_arg = args;
 
@@ -111,14 +113,14 @@ newfunctype(Symbol* sym, Data_Type d_type, Func_Arg* args)
 
 
 Ast* 
-newfuncnotype(Symbol* sym, Func_Arg* args)
+newfuncnotype(const Symbol* const sym, Func_Arg* args)
 {
   return (newfunctype(sym, (args->m_id)->m_type, args));
 }
 
 
 Ast* 
-newassign(Symbol* sym, Ast* exp)
+newassign(const Symbol* const sym, Ast* exp)
 {
  Ast* ptr = malloc(sizeof(Ast)); /*assignment node*/
  Ast* left = malloc(sizeof(Ast)); /*left branch of the assignment node -- symbol */
@@ -138,12 +140,17 @@ newassign(Symbol* sym, Ast* exp)
   {
     /*handle the left-hand side first*/
     left->m_type = SYMBOL_TYPE;
-    (left->m_op).m_var = sym; 
-    (left->m_op).m_var->m_type = (exp->m_op).m_func->m_id->m_type; // assign the data type to the variable taken from the function
+    (left->m_op).m_var = malloc(sizeof(Symbol)); // allocate memory for a symbol
+    (left->m_op).m_var->m_name = malloc(sizeof(char) * strlen(sym->m_name));
+    strcpy((left->m_op).m_var->m_name,  sym->m_name); /*copy the name*/
     
+
     /*handle the right hand side first*/
     right->m_type = FUNC_TYPE;
     (right->m_op).m_func = (Func_Node*) exp;
+
+    /* read type from the function */
+    (left->m_op).m_var->m_type = (right->m_op).m_func->m_id->m_type; // assign the data type to the variable taken from the function
     
   }
   else
@@ -174,7 +181,7 @@ newassign(Symbol* sym, Ast* exp)
 
 /* creates an argument node */
 Func_Arg* 
-newarglist(Symbol* pass_sym, Func_Arg* next_arg)
+newarglist(const Symbol* const pass_sym, Func_Arg* next_arg)
 {
   Func_Arg* arg = malloc(sizeof(Func_Arg));
   
@@ -183,9 +190,15 @@ newarglist(Symbol* pass_sym, Func_Arg* next_arg)
    yyerror("out of memory");
    exit(0);
   }
+  
+  /*allocate memory for a new symbol and its name*/
+  arg->m_id = malloc(sizeof(Symbol));
+  arg->m_id->m_name = malloc(sizeof(char) * strlen(pass_sym->m_name)); 
+  strcpy(arg->m_id->m_name, pass_sym->m_name);
+  arg->m_id->m_type = pass_sym->m_type; /*type of data for semantic check*/
 
-  arg->m_id = pass_sym;
-  arg->m_next = next_arg;
+  /*a pointer to the next argument*/
+  arg->m_next = next_arg; 
 
   return arg; 
 }
@@ -274,7 +287,7 @@ free_assign(Assign_Node* node)
 
 
 /* free a tree of ASTs */
-void
+static void
 treefree(Tree* node)
 {
   if(!node) return; 
@@ -297,6 +310,44 @@ treefree(Tree* node)
 
  free(node); /* always free the node itself */
  node = NULL;
+}
+
+
+void 
+deallocate_tree(Program* root) 
+{
+  printf("Deleting the AST of \"%s\" program.\n", root->m_title);
+  
+  treefree(root->m_begin); /*deletes the entire tree*/
+  
+  // handle the root itself
+  free(root->m_title);
+  root->m_begin = NULL;
+  root->m_title = NULL;
+  
+  free(root);
+
+  root = NULL;
+}
+
+
+Program*
+new_program(Tree* begin)
+{
+  Program* root = malloc(sizeof(Program));
+  root->m_begin = begin;
+  
+  return root;
+}
+
+
+void 
+copy_prog(Program* root, Program* node)
+{
+  /* copy pointers from the node and delete it */
+  root->m_begin = node->m_begin;
+  free(node);
+  node = NULL; 
 }
 
 
@@ -336,6 +387,8 @@ print_func_args(const Func_Arg* const arg)
   return arg_sym;
 }
 
+
+static 
 void print_func(const Func_Node* const temp) 
 {
   const Func_Node* const func = temp;
@@ -347,7 +400,7 @@ void print_func(const Func_Node* const temp)
 
 
 /*print an assignment*/
-void
+static void
 print_assign(const Assign_Node* const temp)
 {
    const Assign_Node* const assgn = temp;
@@ -371,7 +424,7 @@ print_assign(const Assign_Node* const temp)
 
 
 /* print the AST for testing */
-void
+static void
 print_tree (const Tree* const node)
 {
   if(!node) return;
@@ -388,5 +441,15 @@ print_tree (const Tree* const node)
   printf("\n"); // print a new line
   print_tree(node->m_next);
   
+}
+
+void 
+print_program(const Program* const root)
+{
+  printf("Program title: \"%s\"\n\n", root->m_title);
+  
+  /*print the tree itself*/
+  print_tree(root->m_begin);
+
 }
 

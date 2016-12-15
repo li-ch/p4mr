@@ -86,7 +86,7 @@ typedef struct Ast Ast;
 typedef struct Func_Node Func_Node;
 typedef struct Func_Arg Func_Arg; 
 typedef struct Tree Tree;
-
+typedef struct Program Program;
 
 /*Assignment*/
 struct Assign_Node {
@@ -130,16 +130,24 @@ struct Tree {
   Tree* m_next;
 };
 
+
+/*the starting point*/
+struct Program {
+  char* m_title; /*program title*/
+  Tree* m_begin;
+};
+
 /* build an AST */
-Ast* newfunctype(Symbol* sym, Data_Type d_type, Func_Arg* args);
-Ast* newfuncnotype(Symbol* sym, Func_Arg* args);
-Ast* newassign(Symbol* sym, Ast* exp);
+Ast* newfunctype(const Symbol* const sym, Data_Type d_type, Func_Arg* args);
+Ast* newfuncnotype(const Symbol* const sym, Func_Arg* args);
+Ast* newassign(const Symbol* const sym, Ast* exp);
+Program* new_program(Tree* begin);
 
+void deallocate_tree(Program* root);
+void copy_prog(Program* root, Program* node);
 
-void treefree(Tree* root);
-
-Func_Arg* newarglist(Symbol* sym, Func_Arg* next);
-void print_tree(const Tree* const root) ;
+Func_Arg* newarglist(const Symbol* const sym, Func_Arg* next);
+void print_program(const Program* const root) ;
 
 
 /* interface to the compiler lexer */
