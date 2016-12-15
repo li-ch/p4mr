@@ -4,28 +4,28 @@
 # include <stdlib.h>
 # include "compiler_header.h"
 
-struct tree_struct* root; /*global reference to the AST*/
+Tree* root; /*global reference to the AST*/
 %}
 
 %union {
- struct ast* a;
- struct symbol* s; /* which symbol */
- struct fun_arg* sl;
- enum data_type m_type; /*variable type*/
- struct tree_struct* list; /*list of statements*/
+ Ast* ast;
+ Symbol* symbol; /* which symbol */
+ Func_Arg* arg; /*argument list*/
+ Data_Type d_type; /*type of a var/function*/
+ Tree* statement; /*a node for a statement to build an AST*/
 }
 
 
 /* declare tokens */
-%token <s> NAME 
-%token <m_type> VAR_TYPE
-%token EOL ASSIGN 
+%token <symbol> NAME 
+%token <d_type> VAR_TYPE
+%token EOL 
 /*%token IF ELSE*/
 
 
-%type <a> stmt expr
-%type <list> stmtlist
-%type <sl> symlist
+%type <ast> stmt expr func
+%type <statement> stmtlist
+%type <arg> symlist
 
 
 %start beg_compile
@@ -35,29 +35,32 @@ struct tree_struct* root; /*global reference to the AST*/
 
 /*beginning of the compiler rules*/
 
-beg_compile: stmtlist {root = $1;}
+beg_compile: stmtlist { root = $1; root->m_node = $1->m_node; root->m_next = $1->m_next; }
     ;
 
 
-stmtlist: stmt {$$->sub_tree = $1; $$->next = NULL;}
-    | stmtlist stmt {$$->sub_tree = $2; $$->next = $1;}
-    | %empty {$$ = newstmtlist();} 
+stmtlist: stmt { $$->m_node = $1; $$->m_next = NULL; }
+    | stmtlist stmt { $$->m_node = $2; $$->m_next = $1; } 
     ;
 
 
-stmt: NAME ASSIGN expr {$$ = newassign($1, $3);}
-    | NAME '<' VAR_TYPE '>' '(' symlist ')' ';' {$$ = newfunctype($1, $3, $6);}
+stmt: NAME ":=" expr { $$ = newassign($1, $3); }
+    | func { $$ = $1; }
     ;
 
 
-expr: NAME '<' VAR_TYPE '>' '(' symlist ')' ';' {$$ = newfunctype($1, $3, $6);}
-    | NAME '(' symlist ')' ';' {$$ = newfuncnotype($1, $3);}
+expr: func { $$ = $1; }
+    | NAME '(' symlist ')' ';' { $$ = newfuncnotype($1, $3); }
+    ;
 
 
+func: NAME '<' VAR_TYPE '>' '(' symlist ')' ';' { $$ = newfunctype($1, $3, $6); }
+    ;
 
-symlist: NAME {$$ = newarglist($1, NULL);}
-       | NAME ',' symlist {$$ = newarglist($1, $3);}
-       | %empty {$$ = NULL;}
+
+symlist: NAME { $$ = newarglist($1, NULL); }
+       | NAME ',' symlist { $$ = newarglist($1, $3); }
+       | %empty { $$ = NULL; }
        ;
 
 

@@ -12,7 +12,7 @@
 
 #ifndef COMPILER_TEST_H
 #define COMPILER_TEST_H
-enum data_type {
+typedef enum {
  UINT_8 = 1008,
  INT_8,
  UINT_16, 
@@ -22,18 +22,16 @@ enum data_type {
  UINT_64, 
  INT_64,
  PATH_STRING, /*IP string*/
- ERROR_TYPE = -1
-};
+ ERROR_DATA = -1
+} Data_Type;
 
 
-enum node_type {
- ASSM_TYPE, /* assignment */
- FUNC_TYPE, /* function with data type */ 
-};
-
-
-
-
+typedef enum {
+ ASSIGN_TYPE, 
+ FUNC_TYPE, 
+ SYMBOL_TYPE, 
+ ERROR_TYPE
+} Node_Type; 
 
 
 /* A table of symbols represents a structure
@@ -42,32 +40,25 @@ enum node_type {
  *
 */
 
-struct symbol{
-  char* name;  /* variable/function name */
-  enum data_type d_type; /*type of the variable*/
-};
+typedef struct{
+  char* m_name;  /* variable/function name */
+  Data_Type m_type = ERROR_DATA; /*type of the variable*/
+  unsigned int m_par_number; /*number of parameters a function takes -- for semantic checking phase*/
+} Symbol;
 
-struct table_node {
 
-  struct symbol* entry;
-  struct table_node* next;
-};
+typedef struct{
+  Symbol* m_entry;
+  Table_Node* m_next;
+}Table_Node;
 
 
 /*a fixed-size symbol table*/
 void init_symbol_table();
 #define NUM_SYMBOLS 3000
-struct table_node* symbol_table[NUM_SYMBOLS];
+struct Table_Node* symbol_table[NUM_SYMBOLS];
 
-struct symbol* lookup(const char* const); /*for checking if a symbol has already been defined.*/
-
-
-/*list of symbols, for an argument list*/
-struct func_arg {
-  struct symbol* sym;
-  struct func_arg* next_arg;
-};
-
+Symbol* lookup(const char* const); /*for checking if a symbol has already been defined.*/
 
 
 /* 
@@ -87,47 +78,63 @@ struct func_arg {
 * ...
 */
 
-
-struct ast{
-  enum node_type n_type; /*  node type */
-};
-
-// controls the structure of an AST
-struct tree_struct {
-  struct ast* sub_tree; // for parsing and placement -- represents a statement
-  struct tree_struct* next; // next node (statement)
-}; 
+/*Assignment*/
+typedef struct {
+  
+  Ast* m_left; 
+  Ast* m_right;
+} Assign_Node;
 
 
-struct func_call { /* user-defined functions (APIs)*/
-  enum node_type n_type; /* node type*/
-  struct symbol* f_name; /*function name*/
-  struct func_arg* sym_list; /* list of arguments */
-};
+/*a list of funct arguments*/
+typedef struct {
+ 
+ Symbol* m_id; /*var idenftifier*/
+ Func_Arg* m_next; /*next argument*/ 
 
+} Func_Arg;
 
-struct asgn {
-  enum node_type n_type; /*  node type */
-  struct symbol* lhs; /*symbol*/
-  struct ast* expr; /* expression */
-};
+/*Function Call*/
+typedef struct {
+ 
+ Symbol* m_name; /*function name*/
+ Func_Arg* m_arg; /*function arguments*/
+ 
+} Func_Node;
 
+typedef struct {
+  Node_Type m_type; /*  node type */
+  
+  union{ 
+       Symbol* m_var; /*a variable used within a tree*/
+       Assign_Node* m_assign; /*assignmnet*/
+       Func_Node* m_func; /*assignment*/
+  } m_op; /*operation*/
+
+} Ast;
+ 
+
+/*structure for the top level of an AST*/
+typedef struct {
+  Ast* m_node;
+  Tree* m_next;
+} Tree;
 
 /* build an AST */
-struct ast* newfunctype(struct symbol* sym, enum data_type d_type, struct func_arg* args);
-struct ast* newfuncnotype(struct symbol* sym, struct func_arg* args);
-struct ast* newasgn(struct symbol* sym, struct ast *exp);
-struct tree_struct* newstmtlist ();
+Ast* newfunctype(Symbol* sym, Data_Type d_type, Func_Arg* args);
+Ast* newfuncnotype(Symbol* sym, Func_Arg* args);
+Ast* newassign(Symbol* sym, Ast* exp);
 
 
-void treefree(struct tree_struct* root);
+void treefree(Tree* root);
 
-struct func_arg* newarglist(struct symbol* sym, struct func_arg* next);
-void print_tree(const struct tree_struct* const root) ;
+Func_Arg* newarglist(Symbol* sym, Func_Arg* next);
+void print_tree(const Tree* const root) ;
 
 
 /* interface to the compiler lexer */
 extern int yylineno; /* from lexer */
+extern FILE* yyin; /*from lexer*/
 void yyerror(char* s, ...);
 
 #endif

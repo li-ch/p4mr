@@ -34,46 +34,46 @@ symhash(const char * sym)
   return hash;
 }
 
-struct symbol *
+Symbol*
 lookup(const char* const sym)
 {
-  struct table_node* cur = symbol_table[ symhash(sym) % NUM_SYMBOLS];
-  struct table_node* prev;  
+  Table_Node* cur = symbol_table[ symhash(sym) % NUM_SYMBOLS];
+  Table_Node* prev;  
 
   while(cur != NULL) 
   { // traverse the linked list
-     if((cur->entry)->name && !strcmp((cur->entry)->name, sym)) { return (cur->entry); }
+     if((cur->m_entry)->m_name && !strcmp((cur->m_entry)->m_name, sym)) { return (cur->m_entry); }
      prev = cur;
-     cur = cur->next; // move further
+     cur = cur->m_next; // move further
   }     
  
   // if this code is reached, means no symbol with the same string was found. 
   // create a new entry and append it to the hashed bin. 
 
     
-    cur = malloc(sizeof(struct table_node));    
+    cur = malloc(sizeof(Table_Node));    
     if(!cur) 
     {
       yyerror("out of memory");
       exit(0);
     }
 
-    cur->entry = malloc(sizeof(struct symbol));
-    if(!(cur->entry)) 
+    cur->m_entry = malloc(sizeof(Symbol));
+    if(!(cur->m_entry)) 
     {
       yyerror("out of memory");
       exit(0);
     }
 
-    (cur->entry)->name = strdup(sym);  
-    (cur->entry)->d_type = UINT_8;
-    cur->next = NULL; // next node is NULL for termination of the linked list
+    (cur->m_entry)->m_name = strdup(sym);  
+    (cur->m_entry)->m_type = UINT_8;
+    cur->m_next = NULL; // next node is NULL for termination of the linked list
     if(prev) 
     {  
-      prev->next = cur; // update the previous node in the linked list
+      prev->m_next = cur; // update the previous node in the linked list
     }
 
-    return (cur->entry); // return a reference to the newly created symbol
+    return (cur->m_entry); // return a reference to the newly created symbol
  
 }
 
@@ -84,88 +84,95 @@ treefree recursively walks an AST and frees all of the nodes in the tree.
 
 
 
-struct ast*
-newfunctype(struct symbol* sym, enum data_type d_type, struct func_arg* args)
+Ast*
+newfunctype(Symbol* sym, Data_type d_type, Func_Arg* args)
 {
-  struct func_call* ptr = malloc(sizeof(struct func_call));
 
-   if(!ptr) 
+  Ast* ptr = malloc(sizeof(Ast)); /*create an AST node*/
+  Func_Node* data = malloc(sizeof(Func_Node)); /*Create a Func_Npde*/
+
+   if(!ptr || !data) 
    {
      yyerror("out of memory");
      exit(0);
    }
 
-  ptr->n_type = FUNC_TYPE; /*function with type*/
-  sym->d_type = d_type;
-  ptr->f_name = sym;
-  ptr->sym_list = args;
+  ptr->m_type = FUNC_TYPE; /*function with type*/
+  
+  data->m_name = sym;
+  data->m_name->m_type = d_type; // set a data type
+  data->m_arg = args;
 
-  return (struct ast *)ptr;
+  (ptr->m_op).m_func = data; /*point to the newly created function node*/
+
+  return ptr; /*returns a pointer to the created AST node*/
 
 }
 
 
-struct ast* 
-newfuncnotype(struct symbol* sym, struct func_arg* args)
+Ast* 
+newfuncnotype(Symbol* sym, Func_Arg* args)
 {
-  return (newfunctype(sym, (args->sym)->d_type, args));
+  return (newfunctype(sym, (args->sym)->m_type, args));
 }
 
 
-struct ast* 
-newasgn(struct symbol* sym, struct ast* exp)
+Ast* 
+newassign(Symbol* sym, Ast* exp)
 {
- struct asgn* ptr = malloc(sizeof(struct asgn));
+ Ast* ptr = malloc(sizeof(Ast)); /*assignment node*/
+ Ast* left = malloc(sizeof(Ast)); /*left branch of the assignment node -- symbol */
+ Ast* right = malloc(sizeof(Ast)); /*right side of the assignment node -- expression */
+ Assign_Node* data = malloc(sizeof(Assign_Node)); 
  
- if(!ptr)
+
+ if(!ptr || !data || !left || !right)
  {
    yyerror("out of memory");
    exit(0);
  }
 
-  ptr->n_type = ASSM_TYPE; /* assignment type */
-  if(exp -> n_type == FUNC_TYPE)
+  ptr->m_type = ASSIGN_TYPE; /* assignment type */
+
+  if(exp -> m_type == FUNC_TYPE) /*means can assign the symbol to the expression*/
   {
-    struct func_call* det_type = (struct func_call* ) exp;
-    sym->d_type = det_type->f_name->d_type; /*assign data type from the function call*/
+    /*handle the left-hand side first*/
+    left->m_type = SYMBOL_TYPE;
+    (left->m_op).m_var = sym; 
+    (left->m_op).m_var->m_type = (exp->m_op).m_func->m_id->m_type; // assign the data type to the variable taken from the function
+    
+    /*handle the right hand side first*/
+    m_right->m_type = FUNC_TYPE;
+    (right->m_op).m_func = (Func_Node*) exp;
+    
   }
   else
   {
-    sym->d_type = ERROR_TYPE;
+    /*there is a compilation error, don't need to assign anything except an error signal*/
+    left->m_type = ERROR_TYPE;
+    left->m_op = NULL;
+    
+    right->m_type = ERROR_TYPE;
+    left->m_op = NULL;
   }
   
-  ptr->lhs = sym;
-  ptr->expr = exp;
-
-  return (struct ast *)ptr;
-
-}
-
-
-/* create and return a new statement list */
-struct tree_struct* 
-newstmtlist ()
-{
-  struct tree_struct* stm = malloc(sizeof(struct tree_struct));
+  /*finally, set up the final pointers*/
+  data->m_left->left;
+  data->m_right->right;
   
-  if(!stm)
- {
-   yyerror("out of memory");
-   exit(0);
- }
+  (ptr->m_op).m_assign = data;
 
-  stm->sub_tree = NULL;
-  stm->next = NULL;
+  return ptr;
 
-  return stm;
 }
+
 
 
 /* creates an argument node */
-struct func_arg* 
-newarglist(struct symbol* pass_sym, struct func_arg* next_arg)
+Func_Arg* 
+newarglist(Symbol* pass_sym, Func_Arg* next_arg)
 {
-  struct func_arg* arg = malloc(sizeof(struct func_arg));
+  Func_Arg* arg = malloc(sizeof(Func_Arg));
   
   if(!arg)
   {
@@ -173,18 +180,18 @@ newarglist(struct symbol* pass_sym, struct func_arg* next_arg)
    exit(0);
   }
 
-  arg->sym = pass_sym;
-  arg->next_arg = next_arg;
+  arg->m_id = pass_sym;
+  arg->m_next = next_arg;
 
   return arg; 
 }
 
 
 /* free a symbol */
-void
-free_symbol(struct symbol* sym)
+static void
+free_symbol(Symbol* sym)
 {
-  free(sym->name);
+  free(sym->m_name);
   free(sym);
   sym = NULL;
 }
@@ -192,20 +199,21 @@ free_symbol(struct symbol* sym)
 
 
 /* free an argument list */
-void free_func_arg(struct func_arg* list)
+static void 
+free_func_arg(Func_Arg* list)
 {
 
   if(!list) /*no arguments*/
   {
     return;
   }
-  struct func_arg* temp;
+  Func_Arg* temp;
   
   do /* walk the list and release memory */
   {
-    temp = list->next_arg;
+    temp = list->m_next;
 
-    free_symbol(list->sym); /*free symbol*/
+    free_symbol(list->m_id); /*free symbol*/
     free(list); /*free argument node */
     list = temp; 
   }while(temp != NULL);
@@ -216,52 +224,82 @@ void free_func_arg(struct func_arg* list)
 
 
 /*release a function*/
-void
-free_func(struct ast* temp)
+static void
+free_func(Func_Node* node)
 {
- struct func_call* func = (struct func_call*) temp;
  
- free_symbol(func->f_name); /*release char string*/
- free_func_arg(func->sym_list); /* release list of arguments */
-
- free(func);
- temp = NULL;
+ free_symbol(node->m_name); /*release char string*/
+ free_func_arg(node->m_next); /* release list of arguments */
+ free(node); /*release memory allocated for the function node*/
+ node = NULL;
 }
 
 
-void 
-free_assign(struct ast* temp)
+static void 
+free_assign(Assign_Node* node)
 {
- struct asgn* assignment = (struct asgn*) temp;
- free_symbol(assignment->lhs); /* delete function name */
- free_func(assignment->expr); /* delete the right hand side -- function */
+ /*release the left-hand side first*/
+ if(!node->m_left || !node->m_right)
+ {
+   yyerror("Error with an assignment");
+   exit(0);
+ }
+
+ if((node->m_left)->m_type == SYMBOL_TYPE)
+ { 
+   free_symbol((node->m_left->m_op).m_var); /* the node has a pointer to a symbol*/
+   (node->m_left->m_op).m_var = NULL;
+ } 
  
- free(assignment); /* free the node itself */
+ if((node->m_left)->m_type == FUNC_TYPE)
+ {
+   free_func((node->m_right->m_op).m_func); /* must be a function node */
+   (node->m_right->m_op).m_func = NULL;
+ }
  
- temp = NULL;
+ /*finally, release the nodes themselves*/
+ free(node->m_left);
+ free(node->m_right);
+ node->m_left = NULL;
+ node->m_right = NULL;
+
+ free(node);
+ node = NULL;
+
 }
 
 
 /* free a tree of ASTs */
 void
-treefree(struct tree_struct* node)
+treefree(Tree* node)
 {
   if(!node) return; 
   
-  treefree(node->next); // recursively go to the end of the tree
+  treefree(node->m_next); // recursively go to the end of the tree
   
-  switch(node->sub_tree->n_type) // check what's the node type (type of the statement branch)
+  switch((node->m_node)->m_type) // check what's the node type (type of the statement branch)
   {
-    case ASSM_TYPE : {free_assign(node->sub_tree); break;}
-    case FUNC_TYPE : {free_func(node->sub_tree); break;}
+    case ASSIGN_TYPE : {free_assign((node->m_node->m_op).m_assign); break;}
+    case FUNC_TYPE   : {free_func((node->m_node->m_op).m_func); break;}
+    case SYMBOL_TYPE : {free_symbol((node->m_node->m_op).m_var); break;}
  
-    default: { printf("internal error: free bad node %c\n", node->sub_tree->n_type);}
+    default: { printf("internal error: free bad node %c\n", node->m_node->m_type); exit(0);}
  }
+ 
+ /*free allocated memory for this node and set the pointers to NULL*/
+ free(node->m_node);
+ node->m_node = NULL;
+ node->m_next = NULL;
 
  free(node); /* always free the node itself */
  node = NULL;
 }
 
+
+void yyerror(char *errmsg, ...)
+ {
+   fprintf(stderr, "%s\n", errmsg); 
+ }
 
 
 /* -************** Below code is for testing only ***************-*/
@@ -269,14 +307,15 @@ treefree(struct tree_struct* node)
 
 /*print at most two parameters*/
 char*
-print_func_args(const struct func_arg* const arg)
+print_func_args(const Func_Arg* const arg)
 {
-  char* arg_sym = (char*)malloc(sizeof(char)*2*7);
-  const struct func_arg* ptr = arg;  
+  char* arg_sym = (char*)malloc(sizeof(char)*2*8);
+  const Func_Arg* ptr = arg;  
   unsigned int scalar = 0;  
+  size_t j;
 
   // initialize to zero the arrays
-  for(size_t j = 0; j < 14; j++)
+  for(j = 0; j < 14; j++)
   {
     if(j == 6) {arg_sym[j] = ','; continue;}
     arg_sym[j] = '\0';
@@ -285,25 +324,19 @@ print_func_args(const struct func_arg* const arg)
 
   while(!ptr && scalar != 2)
   {
-    const size_t length = strlen(ptr->sym->name);
-    const char* par = ptr->sym->name; 
-    for(size_t i = 0; i < length; i++)
-    {
-      arg_sym[7*scalar* + i] = *(par+i); // read a char 
-    }
-    
-    ptr = ptr->next_arg; 
+    strcpy((arg_sym + scalar*8), ptr->m_id->m_name);
+    ptr = ptr->m_next; 
     scalar++;
   }
 
   return arg_sym;
 }
 
-void print_func(const struct ast* const temp) 
+void print_func(const Func_Node* const temp) 
 {
-  const struct func_call * const stm = (const struct func_call * const) temp;
-  char* args = print_func_args(stm->sym_list);
-  printf("%s < %d > (%s)", stm->f_name->name, stm->f_name->d_type, args);
+  const Func_Node* const func = temp;
+  char* args = print_func_args(func->m_next);
+  printf("%s < %d > (%s) ;\n", func->m_id->m_name, func->m_id->m_type, args);
 
   free(args); /* release memory */
 }
@@ -311,32 +344,45 @@ void print_func(const struct ast* const temp)
 
 /*print an assignment*/
 void
-print_assign(const struct ast* const temp)
+print_assign(const Assign_Node* const temp)
 {
-   const struct asgn* const st = (const struct asgn* const) temp;
+   const Assign_Node const assgn = temp;
    
-   printf("%s = ", st->lhs->name);
-   print_func(st->expr); // print the function
+   if(!assgn->m_left || !assgn->m_right)
+   {
+     yyerror("Error in one of the assignment nodes when printing.");
+     exit(0);
+   }
+
+   if(assgn->m_left->m_type == SYMBOL_TYPE)
+   {
+     printf("%s = ", (assgn->m_left->m_op).m_var->m_name);
+   }
+
+   if(assgn->m_right->m_type == FUNC_TYPE) 
+   {
+     print_func((assgn->m_right->m_op).m_func); // print the function
+   }
 }
 
 
 /* print the AST for testing */
 void
-print_tree (const struct tree_struct* const node)
+print_tree (const Tree* const node)
 {
   if(!node) return;
   
   printf("stmt_list -------------- ");
-  switch(node->sub_tree->n_type) // check what's the node type (type of the statement branch)
+  switch(node->m_node->m_type) // check what's the node type (type of the statement branch)
   {
-    case ASSM_TYPE : {print_assign(node->sub_tree); break;}
-    case FUNC_TYPE : {print_func(node->sub_tree); break;}
+    case ASSIGN_TYPE : {print_assign((node->m_node->m_op).m_assign); break;}
+    case FUNC_TYPE : {print_func((node->m_node->m_op).m_func); break;}
  
-    default: { printf("internal error: free bad node %c\n", node->sub_tree->n_type);}
+    default: { printf("internal error: free bad node while printing tree %c\n", node->m_node->m_type); exit(0);}
   }
 
   printf("\n"); // print a new line
-  print_tree(node->next);
+  print_tree(node->m_next);
   
 }
 

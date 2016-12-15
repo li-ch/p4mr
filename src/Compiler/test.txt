@@ -1,0 +1,4 @@
+A = map<uint64_t>("IP_ADDDRESS_OF_A");
+B = map<uint64_t>("IP_ADDRESS_OF_B");
+
+C = sum(A, B);
