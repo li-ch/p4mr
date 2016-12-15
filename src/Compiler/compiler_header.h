@@ -22,7 +22,7 @@ typedef enum {
  UINT_64, 
  INT_64,
  PATH_STRING, /*IP string*/
- ERROR_DATA = -1
+ ERROR_DATA = 0
 } Data_Type;
 
 
@@ -42,21 +42,23 @@ typedef enum {
 
 typedef struct{
   char* m_name;  /* variable/function name */
-  Data_Type m_type = ERROR_DATA; /*type of the variable*/
+  Data_Type m_type; /*type of the variable*/
   unsigned int m_par_number; /*number of parameters a function takes -- for semantic checking phase*/
 } Symbol;
 
 
-typedef struct{
+typedef struct Table_Node Table_Node;
+
+struct Table_Node{
   Symbol* m_entry;
   Table_Node* m_next;
-}Table_Node;
+};
 
 
 /*a fixed-size symbol table*/
 void init_symbol_table();
 #define NUM_SYMBOLS 3000
-struct Table_Node* symbol_table[NUM_SYMBOLS];
+Table_Node* symbol_table[NUM_SYMBOLS];
 
 Symbol* lookup(const char* const); /*for checking if a symbol has already been defined.*/
 
@@ -78,31 +80,39 @@ Symbol* lookup(const char* const); /*for checking if a symbol has already been d
 * ...
 */
 
+/* typedefs go here */
+typedef struct Assign_Node Assign_Node;
+typedef struct Ast Ast;
+typedef struct Func_Node Func_Node;
+typedef struct Func_Arg Func_Arg; 
+typedef struct Tree Tree;
+
+
 /*Assignment*/
-typedef struct {
+struct Assign_Node {
   
   Ast* m_left; 
   Ast* m_right;
-} Assign_Node;
+};
 
 
 /*a list of funct arguments*/
-typedef struct {
+struct Func_Arg {
  
  Symbol* m_id; /*var idenftifier*/
  Func_Arg* m_next; /*next argument*/ 
 
-} Func_Arg;
+};
 
 /*Function Call*/
-typedef struct {
+struct Func_Node {
  
- Symbol* m_name; /*function name*/
+ Symbol* m_id; /*function identifier*/
  Func_Arg* m_arg; /*function arguments*/
  
-} Func_Node;
+};
 
-typedef struct {
+struct Ast {
   Node_Type m_type; /*  node type */
   
   union{ 
@@ -111,14 +121,14 @@ typedef struct {
        Func_Node* m_func; /*assignment*/
   } m_op; /*operation*/
 
-} Ast;
+};
  
 
 /*structure for the top level of an AST*/
-typedef struct {
+struct Tree {
   Ast* m_node;
   Tree* m_next;
-} Tree;
+};
 
 /* build an AST */
 Ast* newfunctype(Symbol* sym, Data_Type d_type, Func_Arg* args);

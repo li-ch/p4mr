@@ -17,7 +17,7 @@
 "{"  |
 "}"  { return yytext[0]; }
  
-":=" { return ASSIGN; }
+":=" { return ":="; }
 
 "<" {BEGIN(VAR_STATE); return yytext[0];}
 

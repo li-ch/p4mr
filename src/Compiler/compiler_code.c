@@ -85,7 +85,7 @@ treefree recursively walks an AST and frees all of the nodes in the tree.
 
 
 Ast*
-newfunctype(Symbol* sym, Data_type d_type, Func_Arg* args)
+newfunctype(Symbol* sym, Data_Type d_type, Func_Arg* args)
 {
 
   Ast* ptr = malloc(sizeof(Ast)); /*create an AST node*/
@@ -99,8 +99,8 @@ newfunctype(Symbol* sym, Data_type d_type, Func_Arg* args)
 
   ptr->m_type = FUNC_TYPE; /*function with type*/
   
-  data->m_name = sym;
-  data->m_name->m_type = d_type; // set a data type
+  data->m_id = sym;
+  data->m_id->m_type = d_type; // set a data type
   data->m_arg = args;
 
   (ptr->m_op).m_func = data; /*point to the newly created function node*/
@@ -113,7 +113,7 @@ newfunctype(Symbol* sym, Data_type d_type, Func_Arg* args)
 Ast* 
 newfuncnotype(Symbol* sym, Func_Arg* args)
 {
-  return (newfunctype(sym, (args->sym)->m_type, args));
+  return (newfunctype(sym, (args->m_id)->m_type, args));
 }
 
 
@@ -142,7 +142,7 @@ newassign(Symbol* sym, Ast* exp)
     (left->m_op).m_var->m_type = (exp->m_op).m_func->m_id->m_type; // assign the data type to the variable taken from the function
     
     /*handle the right hand side first*/
-    m_right->m_type = FUNC_TYPE;
+    right->m_type = FUNC_TYPE;
     (right->m_op).m_func = (Func_Node*) exp;
     
   }
@@ -150,15 +150,19 @@ newassign(Symbol* sym, Ast* exp)
   {
     /*there is a compilation error, don't need to assign anything except an error signal*/
     left->m_type = ERROR_TYPE;
-    left->m_op = NULL;
-    
+    (left->m_op).m_var = NULL;
+    (left->m_op).m_func = NULL;
+    (left->m_op).m_assign = NULL;    
+
     right->m_type = ERROR_TYPE;
-    left->m_op = NULL;
+    (right->m_op).m_var = NULL;
+    (right->m_op).m_func = NULL;
+    (right->m_op).m_assign = NULL;
   }
   
   /*finally, set up the final pointers*/
-  data->m_left->left;
-  data->m_right->right;
+  data->m_left = left;
+  data->m_right = right;
   
   (ptr->m_op).m_assign = data;
 
@@ -228,8 +232,8 @@ static void
 free_func(Func_Node* node)
 {
  
- free_symbol(node->m_name); /*release char string*/
- free_func_arg(node->m_next); /* release list of arguments */
+ free_symbol(node->m_id); /*release char string*/
+ free_func_arg(node->m_arg); /* release list of arguments */
  free(node); /*release memory allocated for the function node*/
  node = NULL;
 }
@@ -335,7 +339,7 @@ print_func_args(const Func_Arg* const arg)
 void print_func(const Func_Node* const temp) 
 {
   const Func_Node* const func = temp;
-  char* args = print_func_args(func->m_next);
+  char* args = print_func_args(func->m_arg);
   printf("%s < %d > (%s) ;\n", func->m_id->m_name, func->m_id->m_type, args);
 
   free(args); /* release memory */
@@ -346,7 +350,7 @@ void print_func(const Func_Node* const temp)
 void
 print_assign(const Assign_Node* const temp)
 {
-   const Assign_Node const assgn = temp;
+   const Assign_Node* const assgn = temp;
    
    if(!assgn->m_left || !assgn->m_right)
    {
