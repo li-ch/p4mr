@@ -19,7 +19,8 @@ Tree* root; /*global reference to the AST*/
 /* declare tokens */
 %token <symbol> NAME 
 %token <d_type> VAR_TYPE
-%token EOL 
+%token EOL
+%token ASSIGN ":="
 /*%token IF ELSE*/
 
 
