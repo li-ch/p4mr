@@ -88,8 +88,11 @@ int main(int argc, char** argv)
  } 
  yyin = file;
  
+ /*initialize root for storing the tilte of the progrma*/
  root = malloc(sizeof(Program));
- root->m_title = argv[1];
+ root->m_title = malloc(sizeof(char) * strlen(argv[1]));
+ strcpy(root->m_title, argv[1]);
+ /*initialization ends here*/
 
  printf("Parsing and building of the AST for \"%s\" begins now...\n", argv[1]);
 

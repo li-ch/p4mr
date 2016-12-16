@@ -12,6 +12,9 @@
 
 #ifndef COMPILER_TEST_H
 #define COMPILER_TEST_H
+
+# include <string.h>
+
 typedef enum {
  UINT_8 = 1008,
  INT_8,

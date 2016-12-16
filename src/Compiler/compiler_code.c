@@ -4,7 +4,6 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <stdarg.h>
-# include <string.h>
 # include <math.h>
 # include "compiler_header.h"
 
@@ -256,7 +255,7 @@ static void
 free_assign(Assign_Node* node)
 {
  /*release the left-hand side first*/
- if(!node->m_left || !node->m_right)
+ if(!(node->m_left) || !(node->m_right))
  {
    yyerror("Error with an assignment");
    exit(0);
@@ -290,8 +289,15 @@ free_assign(Assign_Node* node)
 static void
 treefree(Tree* node)
 {
-  if(!node) return; 
+
+  printf("treefree (Tree* node) called\n");
+  if(!node || !(node->m_node)) 
+  {
+    return;
+  } 
   
+  printf("treefree no NULL node\n");  
+
   treefree(node->m_next); // recursively go to the end of the tree
   
   switch((node->m_node)->m_type) // check what's the node type (type of the statement branch)
@@ -316,15 +322,26 @@ treefree(Tree* node)
 void 
 deallocate_tree(Program* root) 
 {
+
+  if(!root)
+  { 
+    printf("There is no AST to delete.\n");
+    return;
+  }
+
   printf("Deleting the AST of \"%s\" program.\n", root->m_title);
   
   treefree(root->m_begin); /*deletes the entire tree*/
+
+  // handle the title of the root
+  if(root->m_title)
+  {
+    free(root->m_title);
+    root->m_title = NULL;
+  }
   
-  // handle the root itself
-  free(root->m_title);
-  root->m_begin = NULL;
-  root->m_title = NULL;
-  
+
+  root->m_begin = NULL;  
   free(root);
 
   root = NULL;
@@ -344,6 +361,12 @@ new_program(Tree* begin)
 void 
 copy_prog(Program* root, Program* node)
 {
+  if(!root)
+  {
+    printf("No copying possible because root is NULL.\n");
+    return;
+  }
+
   /* copy pointers from the node and delete it */
   root->m_begin = node->m_begin;
   free(node);
@@ -427,7 +450,7 @@ print_assign(const Assign_Node* const temp)
 static void
 print_tree (const Tree* const node)
 {
-  if(!node) return;
+  if(!node || !(node->m_node)) return;
   
   printf("stmt_list -------------- ");
   switch(node->m_node->m_type) // check what's the node type (type of the statement branch)
@@ -446,6 +469,12 @@ print_tree (const Tree* const node)
 void 
 print_program(const Program* const root)
 {
+  if(!root || !(root->m_title))
+  {
+    printf("Cannot print AST since it is empty.\n");
+    return;
+  }
+
   printf("Program title: \"%s\"\n\n", root->m_title);
   
   /*print the tree itself*/
