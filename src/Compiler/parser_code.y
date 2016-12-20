@@ -39,19 +39,30 @@ Program* root; /*global reference to the AST*/
 
 /*beginning of the compiler rules*/
 
-beg_compile: stmtlist { printf("beg_compile:\n"); root->m_begin = $1; /*$$ = new_program($1); copy_prog(root, $$);*/ }      
+beg_compile: stmtlist { printf("beg_compile:\n"); root->m_begin = $1; }      
     ;
 
 
 stmtlist: stmtlist stmt { printf("stmtlist: stmtlist stmt\n"); 
-                          printf("stmtlist addresses %i, %i", $$, $1);
-                          $$->m_node = $2; $$->m_next = $1;
+                          if($1) /*there are statements before this*/
+                          {
+                            $$ = malloc(sizeof(Tree));
+                            $$->m_node = $2;
+                            $$->m_next = $1;
+         
+                          }
+                          else
+                          {
+                            /*first node, means that this has to be initialized as follows*/
+                            $$ = malloc(sizeof(Tree));
+                            $$->m_next = NULL;
+                            $$->m_node = $2; /*point at the new statement*/
+                          }
                         } 
-        | %empty { printf("stmtlist: empty\n"); $$ = malloc(sizeof(Tree)); $$->m_node = NULL; $$->m_next = NULL; printf("stmtlist: empty  address structure: %i", $$);}
+        | %empty        { printf("stmtlist: empty\n"); $$ = NULL; }
         ;
 
-
-stmt: NAME ":=" expr { printf("stmt: NAME := expr\n"); $$ = newassign(&$1, $3); printf("stmt: NAME = %s\n", $1.m_name); free($1.m_name); $1.m_name = NULL; }
+stmt: NAME ":=" expr { printf("stmt: NAME := expr\n"); $$ = newassign(&$1, $3); free($1.m_name); $1.m_name = NULL; }
     | func           { printf("stmt: func\n"); $$ = $1; }
     ;
 
@@ -67,7 +78,7 @@ func: NAME '<' VAR_TYPE '>' '(' symlist ')' ';' { printf("func: NAME <VAR_TYPE> 
 
 symlist: NAME {printf("symlist: NAME\n"); $$ = newarglist(&$1, NULL); free($1.m_name); $1.m_name = NULL; }
        | NAME ',' symlist {printf("symlist: NAME, symlist\n"); $$ = newarglist(&$1, $3); free($1.m_name); $1.m_name = NULL; }
-       | %empty { printf("symlist: empty"); }
+       | %empty { printf("symlist: empty\n"); $$ = newarglist(NULL, NULL); }
        ;
 
 
@@ -83,6 +94,7 @@ int main(int argc, char** argv)
    return 1;
  } 
 
+
  FILE* file = fopen(argv[1], "r");
  if(!file) 
  {
@@ -95,6 +107,8 @@ int main(int argc, char** argv)
  root = malloc(sizeof(Program));
  root->m_title = malloc(sizeof(char) * strlen(argv[1]));
  strcpy(root->m_title, argv[1]);
+ init_symbol_table(); /*initialize the symbol table*/ 
+
  /*initialization ends here*/
 
  printf("\n\n###### Parsing and building of the AST for \"%s\" begins now... ######\n\n", argv[1]);
@@ -111,8 +125,8 @@ int main(int argc, char** argv)
  fclose(file); /* close the source file */ 
 
  /*print an AST first and then delete it */
- //print_program(root);
- //deallocate_tree(root);
+ print_program(root);
+ deallocate_tree(root);
  
 
  return 0;

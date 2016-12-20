@@ -8,6 +8,9 @@
 # include "compiler_header.h"
 
 
+void static free_symbol(Symbol*);
+
+
 void
 init_symbol_table ()
 {
@@ -22,18 +25,19 @@ init_symbol_table ()
 
 /* symbol table */
 /* hash a symbol */
-static unsigned
-symhash(const char * sym)
+static unsigned int
+symhash(const char * const sym)
 {
   unsigned int hash = 0;
   unsigned c;
-  
-  while(c = *sym++) hash = hash*9 ^ c;
+  const char* char_ref = sym;  
+
+  while(c = *char_ref++) hash = hash*9 ^ c;
   
   return hash;
 }
 
-Symbol*
+const Symbol* 
 lookup(const char* const sym)
 {
   Table_Node* cur = symbol_table[ symhash(sym) % NUM_SYMBOLS];
@@ -75,6 +79,112 @@ lookup(const char* const sym)
     return (cur->m_entry); // return a reference to the newly created symbol
  
 }
+
+
+void 
+add_symbol(const Symbol* const sym)
+{
+  if(!sym)
+  {
+    yyerror("Cannot add a symbol since the pointer is NULL");
+    return;
+  } 
+
+  const unsigned int tab_index = (symhash(sym->m_name) % NUM_SYMBOLS);
+  Table_Node* cur = symbol_table[tab_index];
+  Table_Node* prev = NULL;  
+
+  while(cur != NULL) 
+  { // traverse the linked list
+     if((cur->m_entry)->m_name && !strcmp((cur->m_entry)->m_name, sym->m_name)) { return; /*no need to add the symbol*/ }
+     prev = cur;
+     cur = cur->m_next; // move further
+  }     
+ 
+  // if this code is reached, means no symbol with the same string was found. 
+  // create a new entry and append it to the hashed bin. 
+
+    
+    cur = malloc(sizeof(Table_Node));    
+    if(!cur) 
+    {
+      yyerror("out of memory");
+      exit(0);
+    }
+
+    cur->m_entry = malloc(sizeof(Symbol));   
+
+    if(!(cur->m_entry)) 
+    {
+      yyerror("out of memory");
+      exit(0);
+    }
+
+    // add a new entry to the Symbol table
+    (cur->m_entry)->m_name = strdup(sym->m_name);  
+    (cur->m_entry)->m_data = sym->m_data; /*data type*/
+    cur->m_next = NULL; /* next node is NULL for termination of the linked list */
+    
+
+    if(prev) 
+    {  
+      prev->m_next = cur; /* update the previous node in the linked list */
+    }
+    else /*means the first node is being added*/
+    {
+       symbol_table[tab_index] = cur;
+    }
+  
+   printf("add_symbol ends here\n"); 
+}
+
+
+static 
+const Symbol* const
+get_symbol(const char* const symbol)
+{
+
+  Table_Node* cur = symbol_table[(symhash(symbol) % NUM_SYMBOLS)];
+
+  while(cur != NULL) 
+  { // traverse the linked list
+     printf("strings being compared: %s and %s\n", (cur->m_entry)->m_name, symbol);
+     if((cur->m_entry)->m_name && !strcmp((cur->m_entry)->m_name, symbol)) { return (cur->m_entry); }
+     cur = cur->m_next; // move further
+  }     
+ 
+  printf("get_symbol did not find the passed symbol\n");
+  exit(0);
+  return NULL;
+
+}
+
+/* Deletes the symbol table */
+static 
+void delete_symbol_table()
+{
+  unsigned int index;
+
+  for(index = 0; index < NUM_SYMBOLS; index++) /*loop through the table*/
+  {
+   
+    Table_Node* ptr = symbol_table[index];
+    Table_Node* next;
+       
+    /*loop through a linked-list and delete it*/
+    while(ptr != NULL)
+    {
+      next = ptr->m_next;
+      free_symbol(ptr->m_entry); /*delete entry*/
+      free(ptr);
+      ptr = next; /*update the pointer*/
+          
+    }// while
+   
+  }// for
+  
+}
+
 
 /*Next come the procedures to build the AST nodes and symlists. They all allocate a node
 and then fill in the fields appropriately for the node type. An extended version of
@@ -178,7 +288,10 @@ newassign(const Symbol* const sym, Ast* exp)
 
     /* read type from the function */
     (left->m_op).m_var->m_data = (right->m_op).m_func->m_id->m_data; // assign the data type to the variable taken from the function
-    
+   
+    /*add the newly assigned symbol to the table*/
+    add_symbol((left->m_op).m_var);     
+
   }
   else
   {
@@ -201,6 +314,7 @@ newassign(const Symbol* const sym, Ast* exp)
   
   (ptr->m_op).m_assign = data;
 
+
   return ptr;
 
 }
@@ -221,13 +335,38 @@ newarglist(const Symbol* const pass_sym, Func_Arg* next_arg)
   
   /*allocate memory for a new symbol and its name*/
   arg->m_id = malloc(sizeof(Symbol));
-  arg->m_id->m_name = malloc(sizeof(char) * strlen(pass_sym->m_name) + sizeof(char)); 
-  strcpy(arg->m_id->m_name, pass_sym->m_name);
-  arg->m_id->m_data = pass_sym->m_data; /*type of data for semantic check*/
+
+  if(!pass_sym) /*no arguments passed*/
+  {
+     arg->m_id->m_name = malloc(sizeof(char)); 
+     *(arg->m_id->m_name) = '\0'; // null char
+     arg->m_id->m_data = EMPTY_VAL;
+     arg->m_next = NULL;     
+
+     return arg;
+  }
+
+  printf("newarglist: before calling the reference to the table\n");
+  const Symbol* const sym_ref = get_symbol(pass_sym->m_name);
+  
+  printf("newarglist: get_symbol has been called\n");
+ 
+  if(sym_ref)
+  { 
+     arg->m_id->m_name = malloc(sizeof(char) * strlen(pass_sym->m_name) + sizeof(char)); 
+     strcpy(arg->m_id->m_name, pass_sym->m_name);
+     arg->m_id->m_data = sym_ref->m_data; // retrieve the data type from the table
+  }
+  else
+  { // no such symbol been defined before
+    printf("newarglist: \"%s\" such paramter does not exists\n", pass_sym->m_name);
+    exit(0);
+  }  
 
   /*a pointer to the next argument*/
   arg->m_next = next_arg; 
-
+    printf("newarglist: ends here\n");
+ 
   return arg; 
 }
 
@@ -360,6 +499,8 @@ deallocate_tree(Program* root)
   
   treefree(root->m_begin); /*deletes the entire tree*/
 
+  printf("\nDone deleting the AST of \"%s\" program.\n\n", root->m_title);
+
   // handle the title of the root
   if(root->m_title)
   {
@@ -372,6 +513,10 @@ deallocate_tree(Program* root)
   free(root);
 
   root = NULL;
+
+  delete_symbol_table(); /* delete symbol table */
+
+  
 }
 
 
@@ -478,8 +623,8 @@ static void
 print_tree (const Tree* const node)
 {
   if(!node) return;
-  
-  
+   
+  print_tree(node->m_next); /*recursivle go to the end of the tree and then start printing from the end*/ 
 
   printf("stmt_list -------------- ");
   switch(node->m_node->m_type) // check what's the node type (type of the statement branch)
@@ -492,7 +637,7 @@ print_tree (const Tree* const node)
 
   printf("\n"); // print a new line
  
-  print_tree(node->m_next); /*recursivle go to the end of the tree and then start printing from the end*/ 
+
 }
 
 void 

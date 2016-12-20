@@ -25,6 +25,7 @@ typedef enum {
  UINT_64, 
  INT_64,
  PATH_STRING, /*IP string*/
+ EMPTY_VAL, 
  ERROR_DATA = 0
 } Data_Type;
 
@@ -63,7 +64,8 @@ void init_symbol_table();
 #define NUM_SYMBOLS 3000
 Table_Node* symbol_table[NUM_SYMBOLS];
 
-Symbol* lookup(const char* const); /*for checking if a symbol has already been defined.*/
+const Symbol* lookup(const char* const); /*for checking if a symbol has already been defined.*/
+void add_symbol(const Symbol* const); /*add a new reference to the symbol table*/
 
 
 /* 
@@ -146,12 +148,8 @@ Ast* newfuncnotype(const Symbol* const sym, Func_Arg* args);
 Ast* newassign(const Symbol* const sym, Ast* exp);
 Program* new_program(Tree* begin);
 
-void appendToList(Tree* const node);
-
-
 
 void deallocate_tree(Program* root);
-void copy_prog(Program* root, Program* node);
 
 Func_Arg* newarglist(const Symbol* const sym, Func_Arg* next);
 void print_program(const Program* const root) ;
