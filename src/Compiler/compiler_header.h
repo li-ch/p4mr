@@ -45,7 +45,7 @@ typedef enum {
 
 typedef struct{
   char* m_name;  /* variable/function name */
-  Data_Type m_type; /*type of the variable*/
+  Data_Type m_data; /*type of the variable*/
   unsigned int m_par_number; /*number of parameters a function takes -- for semantic checking phase*/
 } Symbol;
 
@@ -145,6 +145,10 @@ Ast* newfunctype(const Symbol* const sym, Data_Type d_type, Func_Arg* args);
 Ast* newfuncnotype(const Symbol* const sym, Func_Arg* args);
 Ast* newassign(const Symbol* const sym, Ast* exp);
 Program* new_program(Tree* begin);
+
+void appendToList(Tree* const node);
+
+
 
 void deallocate_tree(Program* root);
 void copy_prog(Program* root, Program* node);

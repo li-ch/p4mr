@@ -21,7 +21,7 @@ Program* root; /*global reference to the AST*/
 /* declare tokens */
 %token <symbol> NAME 
 %token <d_type> VAR_TYPE
-%token EOL
+%token EOL 
 %token ASSIGN ":="
 /*%token IF ELSE*/
 
@@ -39,21 +39,24 @@ Program* root; /*global reference to the AST*/
 
 /*beginning of the compiler rules*/
 
-beg_compile: stmtlist { printf("beg_compile:\n"); $$ = new_program($1); copy_prog(root, $$); }      
+beg_compile: stmtlist { printf("beg_compile:\n"); root->m_begin = $1; /*$$ = new_program($1); copy_prog(root, $$);*/ }      
     ;
 
 
-stmtlist: stmtlist stmt {printf("stmtlist: stmtlist stmt\n"); $$->m_node = $2; $$->m_next = $1; } 
-        | %empty { printf("stmtlist: empty\n"); $$ = malloc(sizeof(Tree));}
+stmtlist: stmtlist stmt { printf("stmtlist: stmtlist stmt\n"); 
+                          printf("stmtlist addresses %i, %i", $$, $1);
+                          $$->m_node = $2; $$->m_next = $1;
+                        } 
+        | %empty { printf("stmtlist: empty\n"); $$ = malloc(sizeof(Tree)); $$->m_node = NULL; $$->m_next = NULL; printf("stmtlist: empty  address structure: %i", $$);}
         ;
 
 
-stmt: NAME ":=" expr {printf("stmt: NAME := expr\n"); $$ = newassign(&$1, $3); free($1.m_name); $1.m_name = NULL; }
-    | func { printf("stmt: func\n"); $$ = $1; }
+stmt: NAME ":=" expr { printf("stmt: NAME := expr\n"); $$ = newassign(&$1, $3); printf("stmt: NAME = %s\n", $1.m_name); free($1.m_name); $1.m_name = NULL; }
+    | func           { printf("stmt: func\n"); $$ = $1; }
     ;
 
 
-expr: func {printf("expr: func\n"); $$ = $1; }
+expr: func { printf("expr: func\n"); $$ = $1; }
     | NAME '(' symlist ')' ';' { printf("expr: NAME (symlist);\n"); $$ = newfuncnotype(&$1, $3); free($1.m_name); $1.m_name = NULL; }
     ;
 
@@ -70,7 +73,7 @@ symlist: NAME {printf("symlist: NAME\n"); $$ = newarglist(&$1, NULL); free($1.m_
 
 %%
 
-/*stmt {printf("stmtlist: stmt\n"); $$->m_node = $1; $$->m_next = NULL; }*/
+
 int main(int argc, char** argv)
 {
 
@@ -94,24 +97,24 @@ int main(int argc, char** argv)
  strcpy(root->m_title, argv[1]);
  /*initialization ends here*/
 
- printf("Parsing and building of the AST for \"%s\" begins now...\n", argv[1]);
+ printf("\n\n###### Parsing and building of the AST for \"%s\" begins now... ######\n\n", argv[1]);
 
  /*parse the entire file*/
-do
-{
+ do
+ { 
    yyparse();
  }while(!feof(yyin));
 
 
 
- printf("Done!\n");
+ printf("\n###### Done! ######\n\n");
+ fclose(file); /* close the source file */ 
 
  /*print an AST first and then delete it */
- print_program(root);
- deallocate_tree(root);
+ //print_program(root);
+ //deallocate_tree(root);
  
- fclose(file); /* close the source file */ 
- 
+
  return 0;
 }
 
