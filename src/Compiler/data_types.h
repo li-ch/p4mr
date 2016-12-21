@@ -1,0 +1,18 @@
+#ifndef P4_FRAMEWORK_COMPILER_DATA_TYPES_H
+#define P4_FRAMEWORK_COMPILER_DATA_TYPES_H
+
+typedef enum {
+ UINT_8 = 1008,
+ INT_8,
+ UINT_16, 
+ INT_16, 
+ UINT_32, 
+ INT_32, 
+ UINT_64, 
+ INT_64,
+ PATH_STRING, /*IP string*/
+ EMPTY_VAL, 
+ ERROR_DATA = 0
+} Data_Type;
+
+#endif

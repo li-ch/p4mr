@@ -13,21 +13,9 @@
 #ifndef COMPILER_TEST_H
 #define COMPILER_TEST_H
 
-# include <string.h>
+#include <string.h>
+#include "symbol_table.h"
 
-typedef enum {
- UINT_8 = 1008,
- INT_8,
- UINT_16, 
- INT_16, 
- UINT_32, 
- INT_32, 
- UINT_64, 
- INT_64,
- PATH_STRING, /*IP string*/
- EMPTY_VAL, 
- ERROR_DATA = 0
-} Data_Type;
 
 
 typedef enum {
@@ -37,35 +25,6 @@ typedef enum {
  ERROR_TYPE
 } Node_Type; 
 
-
-/* A table of symbols represents a structure
- * that keeps track of declared variables (lables) 
- * and functions.
- *
-*/
-
-typedef struct{
-  char* m_name;  /* variable/function name */
-  Data_Type m_data; /*type of the variable*/
-  unsigned int m_par_number; /*number of parameters a function takes -- for semantic checking phase*/
-} Symbol;
-
-
-typedef struct Table_Node Table_Node;
-
-struct Table_Node{
-  Symbol* m_entry;
-  Table_Node* m_next;
-};
-
-
-/*a fixed-size symbol table*/
-void init_symbol_table();
-#define NUM_SYMBOLS 3000
-Table_Node* symbol_table[NUM_SYMBOLS];
-
-const Symbol* lookup(const char* const); /*for checking if a symbol has already been defined.*/
-void add_symbol(const Symbol* const); /*add a new reference to the symbol table*/
 
 
 /* 
