@@ -95,6 +95,11 @@ int main(int argc, char** argv)
    return 1;
  } 
 
+ if(argc > 2)
+ {
+   printf("Too many arguments passed.\n");
+   return 1;
+ }
 
  FILE* file = fopen(argv[1], "r");
  if(!file) 
