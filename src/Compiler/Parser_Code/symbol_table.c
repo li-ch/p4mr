@@ -234,7 +234,7 @@ delete_symbol_table()
     Table_Node* next;
        
     /*loop through a linked-list and delete it*/
-    while(ptr != NULL)
+    while(ptr)
     {
       next = ptr->m_next;
       free_symbol(ptr->m_entry); /*delete entry*/
@@ -275,7 +275,7 @@ delete_function_table()
     Func_Tab_Node* next;
        
     /*loop through a linked-list and delete it*/
-    while(!ptr)
+    while(ptr)
     {
       next = ptr->m_next;
       free(ptr->m_key); /*delete the key*/

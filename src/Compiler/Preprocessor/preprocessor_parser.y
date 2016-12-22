@@ -79,25 +79,13 @@ new_data_set(Data_Type func_type, Data_Set* next_type)
 }
 
 
-int main(int argc, char** argv)
+int preprocess(const char* const filename)
 {
-
- if(argc < 2)
- {
-   printf("Please input a source file for reading.\n"); 
-   return 1;
- } 
-
- if(argc > 2)
- {
-   printf("Too many arguments passed.\n");
-   return 1;
- }
-
- FILE* file = fopen(argv[1], "r");
+ 
+ FILE* file = fopen(filename, "r");
  if(!file) 
  {
-  printf("No such file found: \"%s\"\n", argv[1]); 
+  printf("No such file found: \"%s\"\n", filename); 
   return 1;
  } 
  yyin = file;
@@ -117,7 +105,7 @@ int main(int argc, char** argv)
 
 
 
- printf("\n###### Done! ######\n\n");
+ printf("\n###### Done Preprocessing! ######\n\n");
  fclose(file); /* close the source file */ 
 
  return 0;

@@ -7,8 +7,8 @@
 
 %{
 # include "../Includes/symbol_table.h"    
-# include <string.h>    
-# include "preprocessor_parser.tab.h"
+# include <string.h> 
+# include "preprocessor_parser.tab.c"   
 
 typedef struct reference Reference;
 

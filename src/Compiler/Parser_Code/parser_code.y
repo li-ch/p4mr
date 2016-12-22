@@ -3,6 +3,7 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include "Includes/compiler_header.h"
+//# include "Preprocessor/preprocessor_parser.tab.c" 
 
 
 Program* root; /*global reference to the AST*/
@@ -113,8 +114,7 @@ int main(int argc, char** argv)
  root = malloc(sizeof(Program));
  root->m_title = malloc(sizeof(char) * strlen(argv[1]));
  strcpy(root->m_title, argv[1]);
- init_tables(); /*initialize the symbol table*/ 
-
+ init_tables();
  /*initialization ends here*/
 
  printf("\n\n###### Parsing and building of the AST for \"%s\" begins now... ######\n\n", argv[1]);
