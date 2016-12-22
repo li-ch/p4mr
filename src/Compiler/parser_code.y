@@ -113,7 +113,7 @@ int main(int argc, char** argv)
  root = malloc(sizeof(Program));
  root->m_title = malloc(sizeof(char) * strlen(argv[1]));
  strcpy(root->m_title, argv[1]);
- init_symbol_table(); /*initialize the symbol table*/ 
+ init_tables(); /*initialize the symbol table*/ 
 
  /*initialization ends here*/
 

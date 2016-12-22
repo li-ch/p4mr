@@ -117,7 +117,7 @@ void print_program(const Program* const root) ;
 /* interface to the compiler lexer */
 extern int yylineno; /* from lexer */
 extern FILE* yyin; /*from lexer*/
-void yyerror(char* s, ...);
+
 
 #endif
 

@@ -205,7 +205,7 @@ add_function_API(char* func_identifier, Data_Set* type_set, const unsigned int n
     }
     else /*means the first node is being added*/
     {
-       funcion_table[tab_index] = cur;
+       function_table[tab_index] = cur;
     } 
 }
 
@@ -271,7 +271,7 @@ delete_function_table()
   for(index = 0; index < NUM_API_FUNC; index++) /*loop through the table*/
   {
    
-    Func_Tab_Node* ptr = symbol_table[index];
+    Func_Tab_Node* ptr = function_table[index];
     Func_Tab_Node* next;
        
     /*loop through a linked-list and delete it*/
@@ -298,4 +298,9 @@ delete_tables()
 }
 
 
+
+void yyerror(char *errmsg, ...)
+ {
+   fprintf(stderr, "%s\n", errmsg); 
+ }
 

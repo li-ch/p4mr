@@ -6,10 +6,11 @@
 %option noyywrap yylineno
 
 %{
-#include "preprocessor_parser.tab.h"
-#include <string.h>
+# include "../symbol_table.h"    
+# include <string.h>    
+# include "preprocessor_parser.tab.h"
 
-typedef struct reference Reference
+typedef struct reference Reference;
 
 struct reference {
   Reference* m_next_ref;
@@ -19,9 +20,9 @@ struct reference {
 };
 
 
-define struct bufstack BuffStack
+typedef struct bufstack BuffStack;
 
-define struct bufstack {
+struct bufstack {
   BuffStack *prev; /* previous entry */
   YY_BUFFER_STATE bs; /* saved buffer */
   int lineno; /* saved line number */
@@ -29,10 +30,10 @@ define struct bufstack {
   FILE *file; /* current file */
 }; 
 
-BufStack* curbs = NULL;
+BuffStack* curbs = NULL;
 
 const char* curfilename; /* name of current input file */
-static int newfile(const char *fn const);
+static int newfile(const char * const fn);
 static int popfile(void);
 
 static unsigned int defining = 0; /*global flag that helps to handle includes*/
@@ -47,32 +48,42 @@ static unsigned int defining = 0; /*global flag that helps to handle includes*/
 %%
 
 
-^"#"[ \t]*include[ \t]*\[\"<] { if(defining) 
+^"#"[ \t]*include[ \t]*[\"] { if(defining) 
                                 { 
                                   printf("\nRecursive include files are not supported\n"); yyterminate(); 
                                 } 
+                                printf("\n*******************Include has been found*******************\n");
                                 defining = 1; BEGIN (INCLUDE_STATE); /* match the include statement up to a quote or a less sign*/ 
                               }
 
-<INCLUDE_STATE>[^ \t\n\">]+ {  /* handle filename up to the closing quote, >, or end of line*/
-                              { int c;
-                                while((c = input()) && c != '\n') ;
-                              }
-                               yylineno++;
+
+<INCLUDE_STATE>\"          { defining = 0; BEGIN (INITIAL); }
+<INCLUDE_STATE>[^ \t\n\"]+   { /* handle filename up to the closing quote */
+                                
+                               int c;
+                               while((c = input()) && (c != '"'));
+                               if((c = input()) && (c != '\n')) 
+                               { 
+                                 fprintf(stderr, "\n%s : %i : Incorrect include\n", curfilename, (yylineno-1)); 
+                                 yyterminate(); 
+                               }                               
+
+                               yylineno++; /*one include per line*/
+                               
+                               printf("\n***********Include has been successfully processed on file '%s' ***********\n", yytext);
+                               BEGIN (INITIAL);
                                if(!newfile(strdup(yytext)))
                                {   
                                 yyterminate(); /* no such file */
                                }
-                               defining = 0;
-                               BEGIN{INITIAL};
+                               
                            }
- 
-<INCLUDE_STATE>.|\n { fprintf(stderr, "\n%s: %4d bad include line\n", curfilename, yylineno); yyterminate(); }
+
+<INCLUDE_STATE>.|\n        { fprintf(stderr, "\n%s: %4d bad include line\n", curfilename, yylineno); yyterminate(); }
 
 <<EOF>> { if(!popfile()) { yyterminate(); }  /*pop the file stack at end of file, terminate if it's the outermost file*/}
 
 
-/************************************** Below we have the parameter set handler ***************************************************/
 
 "{"                                           { if (defining) /* means that an include file is being read */ 
                                                 { 
@@ -93,45 +104,53 @@ static unsigned int defining = 0; /*global flag that helps to handle includes*/
 <PARAMETER_SET_STATE>","                      { return yytext[0]; } 
 
 <PARAMETER_SET_STATE>"}"                      { BEGIN (INITIAL); return yytext[0];         } 
-<PARAMETER_SET_STATE>\n                       { /* ignore new lines */ }
-<PARAMETER_SET_STATE>.|<<EOF>>                { fprintf(stderr, "\n%s : %i : Bad type set\n", curfilename, yylineno); yyterminate(); }
-                                              
-
- /* function identifier */
-([_a-zA-Z]+[_a-zA-Z0-9]*)                     { if (defining) /* means that an include file is being read */ 
-                                                { 
-                                                  yylval.symbol = strdup(yytext);
-                                                  return NAME; 
-                                                }
-                                              }
+<PARAMETER_SET_STATE>\n                       {  yylineno++; /* ignore new lines */ }
+<PARAMETER_SET_STATE>.                        { fprintf(stderr, "\n%s : %i : Bad type set\n", curfilename, yylineno); yyterminate(); }
 
 
-/* parameter number */
-"("                                           { if (defining) /* means that an include file is being read */ 
-                                                { 
-                                                  BEGIN (PAR_NUM_STATE);
-                                                  return yytext[0]; 
-                                                }
-                                              }
 
-<PAR_NUM_STATE>[0-9]+                         { yylval.par_number = atoi(yytext); return PAR_NUMBER; } 
-<PAR_NUMBER_STATE>")"                         { BEGIN (INITIAL); return yytext[0]; }
-<PAR_NUMBER_STATE>\n                          { /* ignore new lines */ }
-<PAR_NUMBER_STATE>.|<<EOF>>                   { fprintf(stderr, "\n%s : %i : Bad type set\n", curfilename, yylineno); yyterminate(); }                               
-
-
-/* whitespace */
-[ \t]+
-
-/* semi-colon */
 ";"                                           { if (defining) /* means that an include file is being read */ 
                                                 { 
                                                   return yytext[0]; 
                                                 } 
                                               } 
 
+
+
+"("                                           { if (defining) /* means that an include file is being read (used for parameter number) */ 
+                                                { 
+                                                  BEGIN (PAR_NUM_STATE);
+                                                  return yytext[0]; 
+                                                }
+                                              }
+
+
+<PAR_NUM_STATE>[0-9]+                         { yylval.par_number = atoi(yytext); return PAR_NUMBER; } 
+<PAR_NUM_STATE>")"                            { BEGIN (INITIAL); return yytext[0]; }
+<PAR_NUM_STATE>\n                             { yylineno++; }
+<PAR_NUM_STATE>.                              { fprintf(stderr, "\n%s : %i : Bad type set\n", curfilename, yylineno); yyterminate(); }    
+
+
+
+                                              
+
+
+([_a-zA-Z]+[_a-zA-Z0-9]*)                     { if (defining) /* means that an include file is being read (function identifier) */ 
+                                                { 
+                                                  yylval.symbol = strdup(yytext);
+                                                  return NAME; 
+                                                }
+                                              }
+                           
+
+
+
+[ \t]+                                        {/*ignore white spaces*/}
+
+
 \n { yylineno++; }
 
+.                                             {/*ignore other characters*/}
 
 %%
 
@@ -203,6 +222,7 @@ popfile(void)
   yylineno = curbs->lineno;
   curfilename = curbs->filename;
   
+  defining = 0; /*means an include has been handled*/
 
   return 1;
 }

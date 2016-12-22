@@ -32,7 +32,7 @@ Table_Node* symbol_table[NUM_SYMBOLS];
 
 
 /************************************ Below functions for function definitions *************************************/
-typedef struct data_Set Data_Set 
+typedef struct data_set Data_Set; 
 
 /* this structure is used for storing the set of possible data type that a function supports */
 struct data_set {
@@ -58,6 +58,10 @@ const Symbol* lookup(const char* const); /*for checking if a symbol has already 
 void add_function_API(char*, Data_Set*, const unsigned int); /* adds a function declaration/definition in the pre-processing stage*/
 void add_symbol(const Symbol* const); /*add a new reference to the symbol table*/
 void delete_tables(); /* delete the symbol and function tables */
+
+
+
+void yyerror(char* s, ...);
 
 #endif
 

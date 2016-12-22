@@ -2,9 +2,13 @@
 %{
 # include <stdio.h>
 # include <stdlib.h>
+# include "../symbol_table.h"
 # include "../symbol_table.c"
 
 static Data_Set* new_data_set(Data_Type, Data_Set*);
+
+extern FILE* yyin; /*declared by flex*/
+extern int yylineno; /*declared by flex*/
 
 %}
 
@@ -12,7 +16,7 @@ static Data_Set* new_data_set(Data_Type, Data_Set*);
 %union {
   char* symbol;
   Data_Type d_type;
-  Data_Set* data_set;
+  Data_Set* d_set;
   unsigned int par_number;
 }
 
@@ -25,7 +29,7 @@ static Data_Set* new_data_set(Data_Type, Data_Set*);
 
  
 
-%type <data_set> type_set
+%type <d_set> type_set
 
 
 %start beg_prep
@@ -45,7 +49,7 @@ stmtlist: stmtlist func { printf("stmtlist: func\n"); }
 
 
 
-func: NAME '{' type_set '}' '(' PAR_NUMBER ')' ';' { add_function_API($1, $3, $6); }
+func: NAME '{' type_set '}' '(' PAR_NUMBER ')' ';' { printf("func: NAME { type_set } ( PAR_NUMBER );\n"); add_function_API($1, $3, $6); }
     ;
 
 
@@ -63,7 +67,7 @@ new_data_set(Data_Type func_type, Data_Set* next_type)
  
   if(!ptr) 
   {
-    printf("Out of memory for symbol\n");
+    printf("Out of memory for a new data set\n");
     exit(1);
   }  
   
@@ -97,9 +101,10 @@ int main(int argc, char** argv)
   return 1;
  } 
  yyin = file;
- 
+ yylineno = 1; 
+
  /*initialize root for storing the tilte of the progrma*/
- init_symbol_table(); /*initialize the symbol table*/ 
+ init_tables(); /*initialize the tables for symbols/functions*/ 
 
  /*initialization ends here*/
 

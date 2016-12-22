@@ -372,7 +372,7 @@ deallocate_tree(Program* root)
 
   root = NULL;
 
-  delete_symbol_table(); /* delete symbol table */
+  delete_tables(); /* delete symbol/API function tables */
 
   
 }
@@ -403,11 +403,6 @@ copy_prog(Program* root, Program* node)
   node = NULL; 
 }
 
-
-void yyerror(char *errmsg, ...)
- {
-   fprintf(stderr, "%s\n", errmsg); 
- }
 
 
 /* -************** Below code is for testing only ***************-*/
