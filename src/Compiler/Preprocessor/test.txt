@@ -1,7 +1,0 @@
-# include "include_file.txt "
-A := map<uint64_t>("IP_ADDDRESS_OF_A"); // many many words
-B := map<uint64_t>("IP_ADDRESS_OF_B");
-
-C := sum(A, B);
-
-store<uint64_t>(C);

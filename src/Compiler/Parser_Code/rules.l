@@ -1,8 +1,8 @@
 /* recognize tokens for the compiler */
 %option noyywrap yylineno
 %{
-# include "compiler_header.h"
-# include "parser_code.tab.h"
+# include "../Includes/compiler_header.h"
+# include "../parser_code.tab.h"
 %}
 
 %x PATH_DEF VAR_STATE

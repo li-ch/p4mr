@@ -6,7 +6,7 @@
 %option noyywrap yylineno
 
 %{
-# include "../symbol_table.h"    
+# include "../Includes/symbol_table.h"    
 # include <string.h>    
 # include "preprocessor_parser.tab.h"
 

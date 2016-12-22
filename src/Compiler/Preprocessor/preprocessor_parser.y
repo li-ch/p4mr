@@ -2,8 +2,8 @@
 %{
 # include <stdio.h>
 # include <stdlib.h>
-# include "../symbol_table.h"
-# include "../symbol_table.c"
+# include "../Includes/symbol_table.h"
+# include "../Parser_Code/symbol_table.c"
 
 static Data_Set* new_data_set(Data_Type, Data_Set*);
 

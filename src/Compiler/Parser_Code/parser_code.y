@@ -2,7 +2,7 @@
 %{
 # include <stdio.h>
 # include <stdlib.h>
-# include "compiler_header.h"
+# include "Includes/compiler_header.h"
 
 
 Program* root; /*global reference to the AST*/

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "symbol_table.h"
+#include "../Includes/symbol_table.h"
 
 
 
