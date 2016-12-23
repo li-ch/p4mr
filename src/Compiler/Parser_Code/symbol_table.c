@@ -158,7 +158,7 @@ add_symbol(const Symbol* const sym)
 
 
 void 
-add_function_API(char* func_identifier, Data_Set* type_set, const unsigned int num_par)
+add_function_API(char* func_identifier, Data_Set* type_set, const int num_par)
 {
   if(!func_identifier)
   {

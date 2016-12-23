@@ -55,7 +55,7 @@ Func_Tab_Node* function_table[NUM_API_FUNC];
   
 
 const Symbol* lookup(const char* const); /*for checking if a symbol has already been defined.*/
-void add_function_API(char*, Data_Set*, const unsigned int); /* adds a function declaration/definition in the pre-processing stage*/
+void add_function_API(char*, Data_Set*, const int); /* adds a function declaration/definition in the pre-processing stage*/
 void add_symbol(const Symbol* const); /*add a new reference to the symbol table*/
 void delete_tables(); /* delete the symbol and function tables */
 
