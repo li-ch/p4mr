@@ -412,14 +412,14 @@ read_source_code(FILE* file)
         {
           buffer[size] = char_buffer[0];
           size++;
-          if(size == (BUFFER_SIZE - 1)) {printf("\n'%s': line %i: too long filename\n", curfilename, cf_lineno); return FAILURE;}
+          if(size == (BUFFER_SIZE - 1)) {printf("\n'%s': line %i: wrong keyword 'include'\n", curfilename, cf_lineno); return FAILURE;}
         }
         
          buffer[size] = '\0'; /*C string*/
         /*check the read string*/
-        if(!strcmp(buffer, "include"))
+        if(strcmp(buffer, "include"))
         {
-          printf("\n'%s': line %i: incorrect include file\n", curfilename, cf_lineno);
+          printf("\n'%s': line %i: incorrect keyword 'include'\n", curfilename, cf_lineno);
           return FAILURE;
         }
 
@@ -438,7 +438,7 @@ read_source_code(FILE* file)
         
         size = 0; /*defined a few lines above*/ 
         /*read until another quotation mark is found*/
-        while((fscanf(file, "%c", char_buffer) == 1) &&  char_buffer[0] != '"')
+        while((fscanf(file, "%c", char_buffer) == 1) && isalpha(char_buffer[0]))
         {
           buffer[size] = char_buffer[0];
           size++;
@@ -446,7 +446,19 @@ read_source_code(FILE* file)
         } 
         
         buffer[size] = '\0'; /*create a C string*/
-           
+        
+        /*skip white spaces*/
+        if(char_buffer[0] == ' ' || char_buffer[0] == '\t')
+        {
+          while((fscanf(file, "%c", char_buffer) == 1) && (char_buffer[0] == ' ' || char_buffer[0] == '\t'));  /*skip all white spaces*/
+        }
+         
+        if(char_buffer[0] != '"')
+        {
+          printf("\n'%s': line %i: incorrect include file\n", curfilename, cf_lineno);
+          return FAILURE;
+        }
+   
         if(newfile(buffer, file) == FAILURE) {return FAILURE;} // create a new structure and try if it is possible to read a new file
       
     }  
