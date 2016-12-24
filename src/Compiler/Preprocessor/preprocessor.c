@@ -132,7 +132,7 @@ create_data_set(Data_Type possible_val[], const int possible_val_index)
 static int
 is_valid_data_type(const char* const data_type)
 {
-  
+  printf("\nis_valid_data_type is called\n");
   unsigned int i;
   
   for(i = 0; i < NUMBER_OF_DATA_TYPES; i++)
@@ -143,7 +143,7 @@ is_valid_data_type(const char* const data_type)
     }
   }
 
-
+  printf("\nis_valid_data_type returns FAILURE\n");
   return FAILURE;
 }
 
@@ -157,7 +157,7 @@ static int
 read_include_file(FILE* file)
 {
   printf("\nInclude file is being read\n");
-  exit(0);
+  
   int param_number = 0; /*function paramter number*/
   int possible_val_index = 0;
   char char_buffer[1];
@@ -235,6 +235,7 @@ read_include_file(FILE* file)
          if(char_buffer[0] == '\n') {cf_lineno++;}
          continue;
        }       
+    
 
        /*must be data types that must start with a letter*/
        if(isalpha(char_buffer[0]))
@@ -261,11 +262,12 @@ read_include_file(FILE* file)
         
        /*first, the current char is checked for syntax error*/
        
-       if(!isspace(char_buffer[0]) || char_buffer[0] != ',' || char_buffer[0] != '}' || !is_valid_data_type(buffer))
+       if(char_buffer[0] != ',' && char_buffer[0] != '}' && (is_valid_data_type(buffer) == FAILURE) && !isspace(char_buffer[0]))
        {
          /*syntax error*/
          free(func_identifier);
          printf("\n'%s': line %i : syntax error defining data types\n", curfilename, cf_lineno);
+   
          return FAILURE;
        }
        
@@ -438,7 +440,7 @@ read_source_code(FILE* file)
         
         size = 0; /*defined a few lines above*/ 
         /*read until another quotation mark is found*/
-        while((fscanf(file, "%c", char_buffer) == 1) && isalpha(char_buffer[0]))
+        while((fscanf(file, "%c", char_buffer) == 1) && (isalpha(char_buffer[0]) || ispunct(char_buffer[0]) && char_buffer[0] != '"'))
         {
           buffer[size] = char_buffer[0];
           size++;
