@@ -132,7 +132,7 @@ create_data_set(Data_Type possible_val[], const int possible_val_index)
 static int
 is_valid_data_type(const char* const data_type)
 {
-  printf("\nis_valid_data_type is called\n");
+
   unsigned int i;
   
   for(i = 0; i < NUMBER_OF_DATA_TYPES; i++)
@@ -143,7 +143,6 @@ is_valid_data_type(const char* const data_type)
     }
   }
 
-  printf("\nis_valid_data_type returns FAILURE\n");
   return FAILURE;
 }
 
@@ -156,7 +155,6 @@ is_valid_data_type(const char* const data_type)
 static int
 read_include_file(FILE* file)
 {
-  printf("\nInclude file is being read\n");
   
   int param_number = 0; /*function paramter number*/
   int possible_val_index = 0;
@@ -166,14 +164,61 @@ read_include_file(FILE* file)
   clear_possible_val(possible_val, NUMBER_OF_DATA_TYPES);  
 
  /* only for reading include files -- API header files */
- while(fscanf(file, "%c", char_buffer) == 1) /*scan the entire file*/
+ while(fscanf(file, "%c", char_buffer) != EOF) /*scan the entire file*/
  {
-    if(char_buffer[0] == ' ' || char_buffer[0] == '\t') {while((fscanf(file, "%c", char_buffer) == 1) && (char_buffer[0] == ' ' || char_buffer[0] == '\t')); /*ignore all white spaces*/}
+    if(char_buffer[0] == ' ' || char_buffer[0] == '\t') {while((fscanf(file, "%c", char_buffer) != EOF) && (char_buffer[0] == ' ' || char_buffer[0] == '\t')); /*ignore all white spaces*/}
 
-    if(char_buffer[0] == EOF){ return SUCCESS; } /*need this case since white spaces are skipped -- empty files are allowed*/
+
     if(char_buffer[0] == '\n') { cf_lineno++; continue; }
     /*if not the above conditions, then only letters can be; otherwise, a syntax error*/ 
     
+    /*comments are also allowed. C comments and C++ comments are allowed*/
+    if(char_buffer[0] == '/') /*might be a comment*/
+    {
+      if(fscanf(file, "%c", char_buffer) == EOF) // read one more char and check which comment is being used
+      {
+        printf("'%s': line %i: Reading the file has stopped\n", curfilename, cf_lineno);
+        return FAILURE;         
+      }
+
+      switch(char_buffer[0])
+      {
+        case '/' : {  
+                      while((fscanf(file, "%c", char_buffer) != EOF) && (char_buffer[0] != '\n'));
+                      cf_lineno++;
+                      break;
+                   } /*C++ comment*/
+        case '*' : { 
+                     int read_byte = 0;
+                     char prev_char[1]; // for checking comments
+                     prev_char[0] = '\0'; // initialize to NULL
+
+                     while((read_byte = fscanf(file, "%c", char_buffer) != EOF) && (char_buffer[0] != '/'))
+                     {
+                        if(char_buffer[0] == '\n') { cf_lineno++; }
+                        prev_char[0] = char_buffer[0]; // store the previous char                       
+                     }
+                     
+                     /*check first EOF*/
+                     if(read_byte == EOF || prev_char[0] != '*') // didn't find a slash or incorrect comment termination
+                     {
+                        printf("\n'%s': line %i: unterminated comment\n", curfilename, cf_lineno);
+                        return FAILURE;
+                     }
+
+
+                     break; /*a correct comment. Break the switch statement*/
+                   } /*C comment*/
+
+        default : { printf("\n'%s': line %i: Inapprorpiate comment\n", curfilename, cf_lineno); return FAILURE; }
+              
+
+      }// switch
+
+       continue; /*start over after comments have been handled*/
+    }// if comments
+   
+
     if(!isalpha(char_buffer[0]) && char_buffer[0] != '_'){ /*means a non-alphabetical character or not an underscore*/
        if(char_buffer[0] == '#')
        {
@@ -191,7 +236,7 @@ read_include_file(FILE* file)
     /*read until a non-alphabetical found found*/
     buffer[0] = char_buffer[0]; 
     unsigned int index = 1;
-    while((fscanf(file, "%c", char_buffer) == 1) && (isalpha(char_buffer[0]) || char_buffer[0] == '_'))
+    while((fscanf(file, "%c", char_buffer) != EOF) && (isalpha(char_buffer[0]) || char_buffer[0] == '_'))
     {
       buffer[index] = char_buffer[0]; /*read character by character*/
       index++;
@@ -200,9 +245,9 @@ read_include_file(FILE* file)
            
      if(isspace(char_buffer[0])) 
      {
-        if(char_buffer[0] == '\n') {cf_lineno++;}
+        if(char_buffer[0] == '\n') { cf_lineno++; }      
 
-        while((fscanf(file, "%c", char_buffer) == 1) && isspace(char_buffer[0])) /*ignore white spaces*/ 
+        while((fscanf(file, "%c", char_buffer) != EOF) && isspace(char_buffer[0])) /*ignore white spaces*/ 
         {
           if(char_buffer[0] == '\n') {cf_lineno++;}
         }
@@ -224,25 +269,31 @@ read_include_file(FILE* file)
      }
 
      strcpy(func_identifier, buffer); /*copy the function identifier*/
-     /***/
+   
 
      /*following steps check the grammar and data types*/
      /* read until a closing brace is found */
-     while((fscanf(file, "%c", char_buffer) == 1) && char_buffer[0] != '}')
+     while((fscanf(file, "%c", char_buffer) != EOF) && char_buffer[0] != '}')
      {
        if(isspace(char_buffer[0])) /*ignore white spaces*/
        {
          if(char_buffer[0] == '\n') {cf_lineno++;}
          continue;
        }       
-    
+       
+      if(char_buffer[0] == EOF)
+      {
+        printf("\n'%s': line %i: Unterminated function declaration\n", curfilename, cf_lineno);
+        return FAILURE;
+      }    
+
 
        /*must be data types that must start with a letter*/
        if(isalpha(char_buffer[0]))
        {
          unsigned int size = 1;
          buffer[0] = char_buffer[0];
-         while((fscanf(file, "%c", char_buffer) == 1) && (isalnum(char_buffer[0]) || char_buffer[0] == '_')) /*reads the data type*/
+         while((fscanf(file, "%c", char_buffer) != EOF) && (isalnum(char_buffer[0]) || char_buffer[0] == '_')) /*reads the data type*/
          {
            buffer[size] = char_buffer[0];
            size++;
@@ -255,18 +306,29 @@ read_include_file(FILE* file)
        { 
          /*syntax error*/
          free(func_identifier);
-         printf("\n'%s': line %i : syntax error defining data types\n", curfilename, cf_lineno);
+         printf("\n'%s': line %i: syntax error defining data types\n", curfilename, cf_lineno);
          return FAILURE;
        }// else
    
-        
-       /*first, the current char is checked for syntax error*/
+    
+        /*check the read data type*/
+        if(is_valid_data_type(buffer) == FAILURE)
+        {
+         /*incorrect data type*/
+         free(func_identifier);
+         printf("\n'%s': line %i: '%s' is undefined\n", curfilename, cf_lineno, buffer);
+   
+         return FAILURE;
+        }
+  
+
+       /*the current char is checked for syntax error*/
        
-       if(char_buffer[0] != ',' && char_buffer[0] != '}' && (is_valid_data_type(buffer) == FAILURE) && !isspace(char_buffer[0]))
+       if(char_buffer[0] != ',' && char_buffer[0] != '}' && !isspace(char_buffer[0]))
        {
          /*syntax error*/
          free(func_identifier);
-         printf("\n'%s': line %i : syntax error defining data types\n", curfilename, cf_lineno);
+         printf("\n'%s': line %i: syntax error defining data types\n", curfilename, cf_lineno);
    
          return FAILURE;
        }
@@ -289,7 +351,7 @@ read_include_file(FILE* file)
      }// while
      
      /*the source code has been read until here. Now a pair of parentheses, a digit and a semicolon are expected*/
-     while((fscanf(file, "%c", char_buffer) == 1) && isspace(char_buffer[0])) /*ignore white spaces*/
+     while((fscanf(file, "%c", char_buffer) != EOF) && isspace(char_buffer[0])) /*ignore white spaces*/
      {
        if(char_buffer[0] == '\n') { cf_lineno++; }
      }
@@ -299,12 +361,12 @@ read_include_file(FILE* file)
      {
       /*syntax error*/
       free(func_identifier);
-      printf("\n'%s': line %i : syntax error defining data types: missing '('\n", curfilename, cf_lineno);
+      printf("\n'%s': line %i: syntax error defining data types: missing '('\n", curfilename, cf_lineno);
       return FAILURE;
      }
 
      /*read until a digit is found*/
-      while((fscanf(file, "%c", char_buffer) == 1) && isspace(char_buffer[0])) /*ignore white spaces*/
+      while((fscanf(file, "%c", char_buffer) != EOF) && isspace(char_buffer[0])) /*ignore white spaces*/
      {
        if(char_buffer[0] == '\n') { cf_lineno++; }
      }
@@ -314,20 +376,20 @@ read_include_file(FILE* file)
      {
       /*syntax error*/
       free(func_identifier);
-      printf("\n'%s': line %i : syntax error defining parameter number\n", curfilename, cf_lineno);
+      printf("\n'%s': line %i: syntax error defining parameter number\n", curfilename, cf_lineno);
       return FAILURE;
      }
 
      /*read digits until non-digit is found*/
      param_number = char_buffer[0] - '0';
      
-     while((fscanf(file, "%c", char_buffer) == 1) && isdigit(char_buffer[0]))
+     while((fscanf(file, "%c", char_buffer) != EOF) && isdigit(char_buffer[0]))
      {
         if(char_buffer[0] == EOF) // still need to check this condition sice EOF -1. Need to check if this condition id needed
         {
          /*syntax error*/
          free(func_identifier);
-         printf("\n'%s': line %i : syntax error: incomplete function definition\n", curfilename, cf_lineno);
+         printf("\n'%s': line %i: syntax error: incomplete function definition\n", curfilename, cf_lineno);
          return FAILURE;
         }
         param_number = param_number*10 + (char_buffer[0] - '0'); /*more than 9 parameters*/
@@ -340,7 +402,7 @@ read_include_file(FILE* file)
                 
        if(char_buffer[0] == '\n') { cf_lineno++; }
        /*read until a digit is found*/
-       while((fscanf(file, "%c", char_buffer) == 1) && isspace(char_buffer[0])) /*ignore white spaces*/
+       while((fscanf(file, "%c", char_buffer) != EOF) && isspace(char_buffer[0])) /*ignore white spaces*/
        {
          if(char_buffer[0] == '\n') { cf_lineno++; }
        }// while 
@@ -352,12 +414,12 @@ read_include_file(FILE* file)
      {
       /*syntax error*/
       free(func_identifier);
-      printf("\n'%s': line %i : syntax error defining parameter number\n", curfilename, cf_lineno);
+      printf("\n'%s': line %i: syntax error defining parameter number\n", curfilename, cf_lineno);
       return FAILURE;
      }
 
      /*what's left is a semi-colon*/
-     while((fscanf(file, "%c", char_buffer) == 1) && isspace(char_buffer[0]))
+     while((fscanf(file, "%c", char_buffer) != EOF) && isspace(char_buffer[0]))
      {
        if(char_buffer[0] == '\n') {cf_lineno++;}
      }
@@ -367,7 +429,7 @@ read_include_file(FILE* file)
      {
        /*syntax error*/
        free(func_identifier);
-       printf("\n'%s': line %i : syntax error: a missing ';'\n", curfilename, cf_lineno);
+       printf("\n'%s': line %i: syntax error: missing ';'\n", curfilename, cf_lineno);
        return FAILURE;
      }
 
@@ -392,14 +454,14 @@ static int
 read_source_code(FILE* file)
 {
   char char_buffer[1]; 
-  while(fscanf(file, "%c", char_buffer) == 1) // scan until the end of the file
+  while(fscanf(file, "%c", char_buffer) != EOF) // scan until the end of the file
   {
     if(char_buffer[0] == EOF){ return SUCCESS; }
     if(char_buffer[0] == '\n') { cf_lineno++; }
     if(char_buffer[0] == '#') 
     { // handle include
         /*check if the there is spaces until a quote is found*/
-        while((fscanf(file, "%c", char_buffer) == 1) && (char_buffer[0] == ' ' || char_buffer[0] == '\t'));  /*skip all white spaces*/
+        while((fscanf(file, "%c", char_buffer) != EOF) && (char_buffer[0] == ' ' || char_buffer[0] == '\t'));  /*skip all white spaces*/
         
         if(char_buffer[0] != 'i') 
         {
@@ -410,7 +472,7 @@ read_source_code(FILE* file)
         buffer[0] = 'i';
         unsigned int size = 1;
         /*read the string which must be 'include'*/
-        while((fscanf(file, "%c", char_buffer) == 1) && isalpha(char_buffer[0])) 
+        while((fscanf(file, "%c", char_buffer) != EOF) && isalpha(char_buffer[0])) 
         {
           buffer[size] = char_buffer[0];
           size++;
@@ -428,7 +490,7 @@ read_source_code(FILE* file)
         /*skip white spaces*/
         if(char_buffer[0] == ' ' || char_buffer[0] == '\t')
         {
-          while((fscanf(file, "%c", char_buffer) == 1) && (char_buffer[0] == ' ' || char_buffer[0] == '\t'));  /*skip all white spaces*/
+          while((fscanf(file, "%c", char_buffer) != EOF) && (char_buffer[0] == ' ' || char_buffer[0] == '\t'));  /*skip all white spaces*/
         }
 
 
@@ -440,7 +502,7 @@ read_source_code(FILE* file)
         
         size = 0; /*defined a few lines above*/ 
         /*read until another quotation mark is found*/
-        while((fscanf(file, "%c", char_buffer) == 1) && (isalpha(char_buffer[0]) || ispunct(char_buffer[0]) && char_buffer[0] != '"'))
+        while((fscanf(file, "%c", char_buffer) != EOF) && (isalnum(char_buffer[0]) || ispunct(char_buffer[0]) && char_buffer[0] != '"'))
         {
           buffer[size] = char_buffer[0];
           size++;
@@ -452,7 +514,7 @@ read_source_code(FILE* file)
         /*skip white spaces*/
         if(char_buffer[0] == ' ' || char_buffer[0] == '\t')
         {
-          while((fscanf(file, "%c", char_buffer) == 1) && (char_buffer[0] == ' ' || char_buffer[0] == '\t'));  /*skip all white spaces*/
+          while((fscanf(file, "%c", char_buffer) != EOF) && (char_buffer[0] == ' ' || char_buffer[0] == '\t'));  /*skip all white spaces*/
         }
          
         if(char_buffer[0] != '"')
@@ -563,9 +625,7 @@ preprocess_file(const char* const filename)
 
   strcpy(curfilename, filename);
   
-  printf("\nAbout to call read_source_code\n");
   const int status = read_source_code(file); /*return the status of reading*/  
-  printf("\nDone reading source code\n");
   fclose(file); // close the file
 
   free(curbs->filename);

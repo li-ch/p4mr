@@ -1,1 +1,7 @@
-mama {int64_t}( 05 );
+
+
+/**A sum function that is
+*defined in another file. Some
+*P4 file.
+**/
+sum{int32_t}(3);
