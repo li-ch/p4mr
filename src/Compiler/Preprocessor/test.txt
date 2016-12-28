@@ -1,6 +1,0 @@
-A := map<int64_t>("IP4_PATH_A");
-B := map<uint64_t>("IPv4_PATH_B");
-# include "include_file.txt"
-C := sum(A, B);
-
-#include "include_file2.txt"

@@ -3,7 +3,7 @@
 # include <stdlib.h>
 # include <string.h> 
 # include "../Parser_Code/symbol_table.c" 
-# include "preprocessor.h"
+# include "../Includes/preprocessor.h"
 
 
 
@@ -57,19 +57,25 @@ get_data_type(const char buffer[])
 
 
 /**
-* Function initializes a data type array 
-* with the type ERROR_DATA = 0 
-*
+* Function checks if a newly defined 
+* data type has not been defined in for the same 
+* function more than one time
 **/
-static void
-clear_possible_val(Data_Type types[], const int limit)
+static int
+already_exist(const Data_Type possible_val[], const Data_Type new_type, const int possible_val_index)
 {
-  unsigned int i; 
-  for(i = 0; i < limit; i++)
+  int index;
+
+  for(index = 0; index <= possible_val_index; index++)
   {
-    types[i] = ERROR_DATA; /* equiv to types[i] = 0;*/
+    if(possible_val[index] == new_type)
+    {
+      return FAILURE; /*repetition of the same data type*/
+    }
   }
-} 
+ 
+  return SUCCESS;
+}
 
 
 /**
@@ -78,9 +84,9 @@ clear_possible_val(Data_Type types[], const int limit)
 * used in the semantic step;
 */
 static Data_Set*
-create_data_set(Data_Type possible_val[], const int possible_val_index)
+create_data_set(const Data_Type possible_val[], const int possible_val_index)
 {
- 
+  
  Data_Set* head; /*head of linked-list*/
  Data_Set* ptr;
  Data_Set* prev;
@@ -161,7 +167,6 @@ read_include_file(FILE* file)
   char char_buffer[1];
   Data_Type possible_val[NUMBER_OF_DATA_TYPES]; // stores data types of a function
   
-  clear_possible_val(possible_val, NUMBER_OF_DATA_TYPES);  
 
  /* only for reading include files -- API header files */
  while(fscanf(file, "%c", char_buffer) != EOF) /*scan the entire file*/
@@ -333,8 +338,18 @@ read_include_file(FILE* file)
          return FAILURE;
        }
        
-       possible_val[possible_val_index] = get_data_type(buffer); /*get a possible data type*/
-       possible_val_index++; /*for next type if the currently checked function takes more*/
+  
+       const Data_Type temp_type = get_data_type(buffer); /*get a possible data type*/
+      
+       if(already_exist(possible_val, temp_type, possible_val_index) == FAILURE) /*don't allow repetition of the same data type*/
+       {
+         printf("\n'%s': line %i: no repeated data type allowed\n", curfilename, cf_lineno);
+         return FAILURE; 
+       }       
+
+       possible_val[possible_val_index] = temp_type;
+       possible_val_index++; /*increment index every for a possible next data type*/  
+  
 
        if(isspace(char_buffer[0]))
        {
@@ -435,7 +450,7 @@ read_include_file(FILE* file)
 
      /*can create a reference in the function symbol table*/
      Data_Set* av_data_types = create_data_set(possible_val, possible_val_index);
-
+   
      add_function_API(func_identifier, av_data_types, param_number);
      
      /*reset values -- no need to delete the allocated memory since it is handled by other files*/
@@ -611,6 +626,8 @@ preprocess_file(const char* const filename)
 
   if(!file)
   {
+    printf("\n'%s' does not exist.\n", filename);
+
     return FAILURE;
   }
 
