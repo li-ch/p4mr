@@ -2,7 +2,7 @@
  "flex & bison" by John R. Levine Copyright 2009 John Levine, 978-0-596-15597-1.
 */
 
-
+ 
 
 /*
  * Declarations for the compiler. 
@@ -17,101 +17,59 @@
 #include "symbol_table.h"
 
 
-
-typedef enum {
- ASSIGN_TYPE, 
- FUNC_TYPE, 
- SYMBOL_TYPE, 
- ERROR_TYPE
-} Node_Type; 
-
-
-
-/* 
-*  A node of AST.
-*  If only one child is used, 
-*  it has to be the left one - the right one NULL.
-*/
-
-
 /*
-* Since an AST needs to be built,  
-* the AST might contain one of the following nodes:
-*
-* function;
-* function argument (label);
-* assignment; 
-* ...
+* Since an dependency list needs to be built,  
+* some typedefs have to used. 
+* 
 */
 
 /* typedefs go here */
-typedef struct Assign_Node Assign_Node;
-typedef struct Ast Ast;
-typedef struct Func_Node Func_Node;
-typedef struct Func_Arg Func_Arg; 
-typedef struct Tree Tree;
-typedef struct Program Program;
 
-/*Assignment*/
-struct Assign_Node {
-  
-  Ast* m_left; 
-  Ast* m_right;
-};
+typedef struct program_node Program; 
+typedef struct dep_node Dep_Node; /* dependency tree node */
+typedef struct param_node Param_Node; /* the structure that represents a dependency node -- array in a json file */
+typedef struct func_temp Func_JS; /* function that stores some data relationships */
 
 
-/*a list of funct arguments*/
-struct Func_Arg {
- 
- Symbol* m_id; /*var idenftifier*/
- Func_Arg* m_next; /*next argument*/ 
-
-};
-
-/*Function Call*/
-struct Func_Node {
- 
- Symbol* m_id; /*function identifier*/
- Func_Arg* m_arg; /*function arguments*/
- 
-};
-
-struct Ast {
-  Node_Type m_type; /*  node type */
-  
-  union{ 
-       Symbol* m_var; /*a variable used within a tree*/
-       Assign_Node* m_assign; /*assignmnet*/
-       Func_Node* m_func; /*assignment*/
-  } m_op; /*operation*/
+/** The below structures make up the interface between the source file and the JSON file
+*   that is created and passed to the next stage of the compiler (placement).
+**/
+struct param_node {
+  char* m_dep_label;  /* dependency label */
+  char* m_dep_type;   /* dependency type */
+  Param_Node* m_next; /* next param in the dependency list */   
 
 };
  
+struct dep_node {
+  int m_index;        /* statement index */
+  char* m_data_type;  /* statement data type as a string */
+  char* m_func;       /* function performed */
+  char* m_label;      /* assignment label -- if not an assignment, NULL */
+  Param_Node* m_dep;  /* dependency list */
+  Dep_Node* m_next;   /* next node in the dependency list */
 
-/*structure for the top level of an AST*/
-struct Tree {
-  Ast* m_node;
-  Tree* m_next;
+};
+
+struct func_temp {     
+  char* m_title;        /* function name */
+  char* m_data_type;   /* string that points to the data type this function works with */
+  Param_Node* m_param; /* a list of paramters for a JSOn array */  
 };
 
 
 /*the starting point*/
-struct Program {
+struct program_node {
   char* m_title; /*program title*/
-  Tree* m_begin;
+  Dep_Node* m_begin;
 };
 
-/* build an AST */
-Ast* newfunctype(const Symbol* const sym, Data_Type d_type, Func_Arg* args);
-Ast* newfuncnotype(const Symbol* const sym, Func_Arg* args);
-Ast* newassign(const Symbol* const sym, Ast* exp);
-Program* new_program(Tree* begin);
-
-
-void deallocate_tree(Program* root);
 
 Func_Arg* newarglist(const Symbol* const sym, Func_Arg* next);
-void print_program(const Program* const root) ;
+/* Build a dependency linked-list that is passed to the next stage (placement) */
+Func_JS* new_func_type(Symbol* func_name, Symbol* d_type, Func_Arg* arg); /* creates a function structures that stores dat type, name and dependencies */
+Func_JS* new_func_no_type(Symbol* func_name, Func_Arg* arg); /* same as above, but this function deducts function type from the params */
+Dep_Node* new_dependency(Symbol* label, Func_JS* func); /* creates a JSON interface that stores all the information needed to parse this interface to a JSON object. Also, the returned strurcture can be viewed as a statement/node in a dependency graph. */
 
 
 /* interface to the compiler lexer */

@@ -3,17 +3,30 @@
 
 #include "data_types.h"
 
+/* boolean flags used for status checking */
+const int SUCCESS = 1;
+const int FAILURE = 0;
+ 
 
 /* A table of symbols represents a structure
- * that keeps track of declared variables (lables) 
- * and functions.
+ * that keeps track of declared variables (labels).
  *
 */
 
 typedef struct { 
-  char* m_name;  /* variable/function name */
+  char* m_name;  /* label of a variable */
   Data_Type m_data; /*type of the variable*/
 } Symbol;
+
+
+typedef struct func_arg Func_Arg;
+/*a list of funct arguments*/
+struct func_arg {
+ 
+ Symbol* m_id; /*var idenftifier*/
+ Func_Arg* m_next; /*next argument*/ 
+
+};
 
 
 typedef struct symbol_table_node Table_Node;
@@ -26,9 +39,8 @@ struct symbol_table_node {
 
 
 /*a fixed-size symbol table*/
-void init_tables();
-#define NUM_SYMBOLS 300
-Table_Node* symbol_table[NUM_SYMBOLS];
+#define NUM_LABELS 53
+Table_Node* label_table[NUM_LABELS];
 
 
 /************************************ Below functions for function definitions *************************************/
@@ -43,20 +55,24 @@ struct data_set {
 
 typedef struct table_func_definition Func_Tab_Node;
 
+
 struct table_func_definition {
   char* m_key;
   Func_Tab_Node* m_next;
-  unsigned int m_par_num; 
+  int m_par_num; 
   Data_Set* m_data_set;
 };
 
-#define NUM_API_FUNC 300
+#define NUM_API_FUNC 19
 Func_Tab_Node* function_table[NUM_API_FUNC];
   
 
-const Symbol* lookup(const char* const); /*for checking if a symbol has already been defined.*/
-void add_function_API(char*, Data_Set*, const int); /* adds a function declaration/definition in the pre-processing stage*/
-void add_symbol(const Symbol* const); /*add a new reference to the symbol table*/
+const Symbol* const lookup(const char* const); /*for checking if a symbol has already been defined.*/
+int add_function_API(char*, Data_Set*, const int); /* adds a function declaration/definition in the pre-processing stage*/
+int add_label(const Symbol* const); /*add a new reference to the symbol table*/
+int correct_func(const char* const, const Func_Arg* const); /* checks if a function has been defined */
+
+void init_tables(); /*initialize all tables*/
 void delete_tables(); /* delete the symbol and function tables */
 
 

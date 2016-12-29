@@ -11,25 +11,23 @@ Program* root; /*global reference to the AST*/
 
 
 %union {
- Ast* ast;
- Symbol symbol; /* which symbol */
+ Symbol* symbol; /* which symbol */
  Func_Arg* arg; /*argument list*/
- Data_Type d_type; /*type of a var/function*/
- Tree* statement; /*a node for a statement to build an AST*/
+ Dep_Node* statement;
+ Func_JS* function;
  Program* program; /*the pointer that points to the root of the tree*/
 }
 
 
 /* declare tokens */
 %token <symbol> NAME 
-%token <d_type> VAR_TYPE
+%token <symbol> VAR_TYPE
 %token EOL 
 %token ASSIGN ":="
-/*%token IF ELSE*/
 
 
-%type <ast> stmt expr func 
-%type <statement> stmtlist 
+%type <statement> stmt stmtlist
+%type <function> func expr
 %type <arg> symlist
 %type <program> beg_compile
 
@@ -64,22 +62,26 @@ stmtlist: stmtlist stmt { printf("stmtlist: stmtlist stmt\n");
         | %empty        { printf("stmtlist: empty\n"); $$ = NULL; }
         ;
 
-stmt: NAME ":=" expr { printf("stmt: NAME := expr\n"); $$ = newassign(&$1, $3); free($1.m_name); $1.m_name = NULL; }
-    | func           { printf("stmt: func\n"); $$ = $1; }
+
+
+stmt: NAME ":=" expr { printf("stmt: NAME := expr\n"); $$ = new_dependency($1, $3); }
+    | func           { printf("stmt: func\n"); $$ = new_dependency(NULL, $1); }
     ;
 
 
-expr: func { printf("expr: func\n"); $$ = $1; }
-    | NAME '(' symlist ')' ';' { printf("expr: NAME (symlist);\n"); $$ = newfuncnotype(&$1, $3); free($1.m_name); $1.m_name = NULL; }
+
+expr: NAME '<' VAR_TYPE '>' '(' symlist ')' ';' { printf("expr: NAME <VAR_TYPE> (symlist);\n"); $$ = new_func_type($1, &$3, $6); }
+    | func                                      { printf("expr: func\n"); $$ = $1; }
     ;
 
 
-func: NAME '<' VAR_TYPE '>' '(' symlist ')' ';' { printf("func: NAME <VAR_TYPE> (symlist);\n"); $$ = newfunctype(&$1, $3, $6); free($1.m_name); $1.m_name = NULL; }
+
+func: NAME '(' symlist ')' ';' { printf("func: NAME (symlist);\n"); $$ = new_func_no_type($1, $3); }
     ;
 
 
-symlist: NAME {printf("symlist: NAME\n"); $$ = newarglist(&$1, NULL); free($1.m_name); $1.m_name = NULL; }
-       | NAME ',' symlist {printf("symlist: NAME, symlist\n"); $$ = newarglist(&$1, $3); free($1.m_name); $1.m_name = NULL; }
+symlist: NAME { printf("symlist: NAME\n"); $$ = newarglist($1, NULL); }
+       | NAME ',' symlist { printf("symlist: NAME, symlist\n"); $$ = newarglist($1, $3); } }
        | %empty { printf("symlist: empty\n"); $$ = newarglist(NULL, NULL); }
        ;
 

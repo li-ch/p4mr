@@ -16,9 +16,7 @@ struct bufstack {
   FILE *file; /* current file */
 }; 
 
-static const int SUCCESS = 1;
-static const int FAILURE = 0;
-
+static const int WRONG_INDEX = -1;
 
 
 static BuffStack* curbs = NULL;
@@ -40,19 +38,16 @@ static void popfile(void);
 * and the data type value.
 */
 static Data_Type
-get_data_type(const char buffer[])
+get_data_type(const int index)
 {
-  unsigned int i;
-  
-  for(i = 0; i < NUMBER_OF_DATA_TYPES; i++)
+  if(index >= 0 && index < NUMBER_OF_DATA_TYPES)
   {
-    if(!strcmp(buffer, DATA_TYPES[i])) /*valid data type*/
-    {
-      return DATA_TYPE_VALUES[i];
-    }
+     return DATA_TYPE_VALUES[index];
   }
 
-  return ERROR_DATA;
+   printf("\n%s: line %i: error index of data type out of range\n", curfilename, cf_lineno);
+
+   return ERROR_DATA;
 }
 
 
@@ -66,7 +61,7 @@ already_exist(const Data_Type possible_val[], const Data_Type new_type, const in
 {
   int index;
 
-  for(index = 0; index <= possible_val_index; index++)
+  for(index = 0; index <= possible_val_index; index += 1)
   {
     if(possible_val[index] == new_type)
     {
@@ -106,7 +101,7 @@ create_data_set(const Data_Type possible_val[], const int possible_val_index)
 
  int index;
  
- for(index = 1; index < possible_val_index; index++)
+ for(index = 1; index < possible_val_index; index += 1)
  {
    prev = ptr;
    ptr = malloc(sizeof(Data_Set));
@@ -141,15 +136,15 @@ is_valid_data_type(const char* const data_type)
 
   unsigned int i;
   
-  for(i = 0; i < NUMBER_OF_DATA_TYPES; i++)
+  for(i = 0; i < NUMBER_OF_DATA_TYPES; i += 1)
   {
     if(!strcmp(data_type, DATA_TYPES[i])) /*valid data type*/
     {
-      return SUCCESS;
+      return i;
     }
   }
 
-  return FAILURE;
+  return WRONG_INDEX;
 }
 
 
@@ -174,7 +169,7 @@ read_include_file(FILE* file)
     if(char_buffer[0] == ' ' || char_buffer[0] == '\t') {while((fscanf(file, "%c", char_buffer) != EOF) && (char_buffer[0] == ' ' || char_buffer[0] == '\t')); /*ignore all white spaces*/}
 
 
-    if(char_buffer[0] == '\n') { cf_lineno++; continue; }
+    if(char_buffer[0] == '\n') { cf_lineno += 1; continue; }
     /*if not the above conditions, then only letters can be; otherwise, a syntax error*/ 
     
     /*comments are also allowed. C comments and C++ comments are allowed*/
@@ -190,7 +185,7 @@ read_include_file(FILE* file)
       {
         case '/' : {  
                       while((fscanf(file, "%c", char_buffer) != EOF) && (char_buffer[0] != '\n'));
-                      cf_lineno++;
+                      cf_lineno += 1;
                       break;
                    } /*C++ comment*/
         case '*' : { 
@@ -200,7 +195,7 @@ read_include_file(FILE* file)
 
                      while((read_byte = fscanf(file, "%c", char_buffer) != EOF) && (char_buffer[0] != '/'))
                      {
-                        if(char_buffer[0] == '\n') { cf_lineno++; }
+                        if(char_buffer[0] == '\n') { cf_lineno += 1; }
                         prev_char[0] = char_buffer[0]; // store the previous char                       
                      }
                      
@@ -244,17 +239,17 @@ read_include_file(FILE* file)
     while((fscanf(file, "%c", char_buffer) != EOF) && (isalpha(char_buffer[0]) || char_buffer[0] == '_'))
     {
       buffer[index] = char_buffer[0]; /*read character by character*/
-      index++;
+      index += 1;
       if(index == (BUFFER_SIZE - 1)) {printf("\n'%s': line %i: too long function identifier\n", curfilename, cf_lineno); return FAILURE;}
     } 
            
      if(isspace(char_buffer[0])) 
      {
-        if(char_buffer[0] == '\n') { cf_lineno++; }      
+        if(char_buffer[0] == '\n') { cf_lineno += 1; }      
 
         while((fscanf(file, "%c", char_buffer) != EOF) && isspace(char_buffer[0])) /*ignore white spaces*/ 
         {
-          if(char_buffer[0] == '\n') {cf_lineno++;}
+          if(char_buffer[0] == '\n') { cf_lineno += 1; }
         }
      }
     
@@ -282,7 +277,7 @@ read_include_file(FILE* file)
      {
        if(isspace(char_buffer[0])) /*ignore white spaces*/
        {
-         if(char_buffer[0] == '\n') {cf_lineno++;}
+         if(char_buffer[0] == '\n') { cf_lineno += 1; }
          continue;
        }       
        
@@ -301,7 +296,7 @@ read_include_file(FILE* file)
          while((fscanf(file, "%c", char_buffer) != EOF) && (isalnum(char_buffer[0]) || char_buffer[0] == '_')) /*reads the data type*/
          {
            buffer[size] = char_buffer[0];
-           size++;
+           size += 1;
            if(size == (BUFFER_SIZE-1)) {printf("\n'%s': line %i: too long data identifier\n", curfilename, cf_lineno); return FAILURE;} 
          }//  while
           
@@ -317,7 +312,8 @@ read_include_file(FILE* file)
    
     
         /*check the read data type*/
-        if(is_valid_data_type(buffer) == FAILURE)
+        int data_type_index;
+        if((data_type_index = is_valid_data_type(buffer)) == WRONG_INDEX)
         {
          /*incorrect data type*/
          free(func_identifier);
@@ -339,7 +335,7 @@ read_include_file(FILE* file)
        }
        
   
-       const Data_Type temp_type = get_data_type(buffer); /*get a possible data type*/
+       const Data_Type temp_type = get_data_type(data_type_index); /*get a possible data type*/
       
        if(already_exist(possible_val, temp_type, possible_val_index) == FAILURE) /*don't allow repetition of the same data type*/
        {
@@ -348,12 +344,12 @@ read_include_file(FILE* file)
        }       
 
        possible_val[possible_val_index] = temp_type;
-       possible_val_index++; /*increment index every for a possible next data type*/  
+       possible_val_index += 1; /*increment index every for a possible next data type*/  
   
 
        if(isspace(char_buffer[0]))
        {
-         if(char_buffer[0] == '\n') { cf_lineno++; }
+         if(char_buffer[0] == '\n') { cf_lineno += 1; }
          continue;
        }//if
        else // either as colon or a closing brace 
@@ -368,7 +364,7 @@ read_include_file(FILE* file)
      /*the source code has been read until here. Now a pair of parentheses, a digit and a semicolon are expected*/
      while((fscanf(file, "%c", char_buffer) != EOF) && isspace(char_buffer[0])) /*ignore white spaces*/
      {
-       if(char_buffer[0] == '\n') { cf_lineno++; }
+       if(char_buffer[0] == '\n') { cf_lineno += 1; }
      }
      
      /*handle parentheses*/
@@ -383,7 +379,7 @@ read_include_file(FILE* file)
      /*read until a digit is found*/
       while((fscanf(file, "%c", char_buffer) != EOF) && isspace(char_buffer[0])) /*ignore white spaces*/
      {
-       if(char_buffer[0] == '\n') { cf_lineno++; }
+       if(char_buffer[0] == '\n') { cf_lineno += 1; }
      }
 
 
@@ -415,11 +411,11 @@ read_include_file(FILE* file)
      if(isspace(char_buffer[0])) /*skip until a closing parenthesis is found*/
      {
                 
-       if(char_buffer[0] == '\n') { cf_lineno++; }
+       if(char_buffer[0] == '\n') { cf_lineno += 1; }
        /*read until a digit is found*/
        while((fscanf(file, "%c", char_buffer) != EOF) && isspace(char_buffer[0])) /*ignore white spaces*/
        {
-         if(char_buffer[0] == '\n') { cf_lineno++; }
+         if(char_buffer[0] == '\n') { cf_lineno += 1; }
        }// while 
      }// if     
      
@@ -436,7 +432,7 @@ read_include_file(FILE* file)
      /*what's left is a semi-colon*/
      while((fscanf(file, "%c", char_buffer) != EOF) && isspace(char_buffer[0]))
      {
-       if(char_buffer[0] == '\n') {cf_lineno++;}
+       if(char_buffer[0] == '\n') { cf_lineno += 1; }
      }
 
      /*last step -- either a semicolon or a syntax error*/
@@ -471,8 +467,7 @@ read_source_code(FILE* file)
   char char_buffer[1]; 
   while(fscanf(file, "%c", char_buffer) != EOF) // scan until the end of the file
   {
-    if(char_buffer[0] == EOF){ return SUCCESS; }
-    if(char_buffer[0] == '\n') { cf_lineno++; }
+    if(char_buffer[0] == '\n') { cf_lineno += 1; }
     if(char_buffer[0] == '#') 
     { // handle include
         /*check if the there is spaces until a quote is found*/
@@ -490,7 +485,7 @@ read_source_code(FILE* file)
         while((fscanf(file, "%c", char_buffer) != EOF) && isalpha(char_buffer[0])) 
         {
           buffer[size] = char_buffer[0];
-          size++;
+          size += 1;
           if(size == (BUFFER_SIZE - 1)) {printf("\n'%s': line %i: wrong keyword 'include'\n", curfilename, cf_lineno); return FAILURE;}
         }
         
@@ -520,7 +515,7 @@ read_source_code(FILE* file)
         while((fscanf(file, "%c", char_buffer) != EOF) && (isalnum(char_buffer[0]) || ispunct(char_buffer[0]) && char_buffer[0] != '"'))
         {
           buffer[size] = char_buffer[0];
-          size++;
+          size += 1;
           if(size == (BUFFER_SIZE - 1)) {printf("\n'%s': line %i: too long filename\n", curfilename, cf_lineno); return FAILURE;}
         } 
         
