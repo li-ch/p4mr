@@ -63,13 +63,12 @@ newarglist(Symbol* pass_sym, Func_Arg* next_arg)
   }
   else
   { // no such symbol been defined before
-    printf("newarglist: \"%s\" such paramter does not exists\n", pass_sym->m_name);
+    printf("\"%s\" such paramter does not exist\n", pass_sym->m_name);
     exit(0);
   }  
 
   /*a pointer to the next argument*/
   arg->m_next = next_arg; 
-  printf("newarglist: ends here\n");
  
   return arg; 
 }
@@ -101,25 +100,25 @@ convert_arguments(Func_Arg* args)
   
   if(args->m_id->m_data == PATH_STRING)
   {
-    head->m_dep_type = malloc(sizeof(char) + strlen("path_label"));
-    if(!head->m_dep_type)
+    head->m_dep_property = malloc(sizeof(char) + strlen("path_label"));
+    if(!head->m_dep_property)
     { 
         yyerror("out of memory");
         exit(0);
     }
 
-    strcpy(head->m_dep_type, "path_label");
+    strcpy(head->m_dep_property, "path_label");
   }
   else /*data label*/
   {
-    head->m_dep_type = malloc(sizeof(char) + strlen("data_label"));
-    if(!head->m_dep_type)
+    head->m_dep_property = malloc(sizeof(char) + strlen("data_label"));
+    if(!head->m_dep_property)
     { 
         yyerror("out of memory");
         exit(0);
     }
 
-    strcpy(head->m_dep_type, "data_label");
+    strcpy(head->m_dep_property, "data_label");
   }
 
 
@@ -146,24 +145,24 @@ convert_arguments(Func_Arg* args)
   
     if(ptr->m_id->m_data == PATH_STRING)
     {
-      list->m_dep_type = malloc(sizeof(char) + strlen("path_label"));
-      if(!list->m_dep_type)
+      list->m_dep_property = malloc(sizeof(char) + strlen("path_label"));
+      if(!list->m_dep_property)
       { 
         yyerror("out of memory");
         exit(0);
       }
 
-      strcpy(list->m_dep_type, "path_label");
+      strcpy(list->m_dep_property, "path_label");
     }
     else /*data label*/
     {
-      list->m_dep_type = malloc(sizeof(char) + strlen("data_label"));
-      if(!list->m_dep_type)
+      list->m_dep_property = malloc(sizeof(char) + strlen("data_label"));
+      if(!list->m_dep_property)
       { 
         yyerror("out of memory");
         exit(0);
       }
-      strcpy(list->m_dep_type, "data_label");
+      strcpy(list->m_dep_property, "data_label");
     }
 
    /*update pointer*/
@@ -229,7 +228,7 @@ new_func_no_type(Symbol* func_name, Func_Arg* args)
   if(!argument) { printf("\nLabel '%s' has not been defined before.\n", args->m_id->m_name); exit(0); }
 
 
-  printf("\nFound an argument: %s <%i>\n", argument->m_name, argument->m_data);
+  
   const Data_Type temp_type = argument->m_data; /* data type for comparison */
   sym->m_data = temp_type;
 
@@ -239,7 +238,6 @@ new_func_no_type(Symbol* func_name, Func_Arg* args)
   {
     if(DATA_TYPE_VALUES[index] == temp_type)
     {
-      printf("\nFound a matching data type in new_func_no_type\n");
       sym->m_name = malloc(sizeof(char) + strlen(DATA_TYPES[index]));
       
       if(!sym->m_name)
@@ -354,7 +352,7 @@ deall_dep(Param_Node* param)
   
   /*release memory of label and type/property*/
   free(prev->m_dep_label);
-  free(prev->m_dep_type);
+  free(prev->m_dep_property);
 
   /*delete the node itself*/
   free(prev);
@@ -442,7 +440,7 @@ print_stmt(const Stmt_Node* const stmt)
  {
    printf("\t\t\t\t{\n");
    printf("\t\t\t\t\t\"label\"  :  \"%s\",\n", params->m_dep_label);
-   printf("\t\t\t\t\t\"property\"  :  \"%s\"\n", params->m_dep_type);
+   printf("\t\t\t\t\t\"property\"  :  \"%s\"\n", params->m_dep_property);
    
    /*this is used for nice printing*/
    if(params->m_next) /*there is more*/

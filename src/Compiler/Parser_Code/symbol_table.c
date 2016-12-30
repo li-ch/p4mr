@@ -159,12 +159,13 @@ add_function_API(char* func_identifier, Data_Set* type_set, const int num_par)
     yyerror("Cannot add a new API function since function identifier is NULL");
     return FAILURE;
   } 
-
-  const unsigned int tab_index = (symhash(func_identifier) % NUM_API_FUNC);
-  Func_Tab_Node* cur = function_table[tab_index];
+  
+  const unsigned int bin_index = (symhash(func_identifier) % NUM_API_FUNC);
+  Func_Tab_Node* cur = function_table[bin_index];
   Func_Tab_Node* prev = NULL;  
 
-  while(cur != NULL) 
+
+  while(cur) 
   { // traverse the linked list
      if(cur->m_key && !strcmp(cur->m_key, func_identifier) && cur->m_par_num == num_par)  
      { 
@@ -176,7 +177,6 @@ add_function_API(char* func_identifier, Data_Set* type_set, const int num_par)
  
   // if this code is reached, means no function with the same string was found. 
   // create a new entry and append it to the hashed bin. 
-
     
     cur = malloc(sizeof(Func_Tab_Node));    
     if(!cur) 
@@ -197,8 +197,8 @@ add_function_API(char* func_identifier, Data_Set* type_set, const int num_par)
       prev->m_next = cur; /* update the previous node in the linked list */
     }
     else /*means the first node is being added*/
-    {
-       function_table[tab_index] = cur;
+    { 
+       function_table[bin_index] = cur;
     } 
 
     return SUCCESS;
@@ -210,12 +210,13 @@ static const Func_Tab_Node* const
 get_function(const char* const f_title, const int par_num)
 {
  
-  const unsigned int tab_index = (symhash(f_title) % NUM_API_FUNC);
-  const Func_Tab_Node* cur = function_table[tab_index];
-   
+  const unsigned int bin_index = (symhash(f_title) % NUM_API_FUNC);
+  const Func_Tab_Node* cur = function_table[bin_index];
+
 
   while(cur) 
   { // traverse the linked list
+
      if(cur->m_key && !strcmp(cur->m_key, f_title) && cur->m_par_num == par_num)  
      { 
        return cur; /* found the function */
@@ -302,7 +303,7 @@ correct_func(const char* const f_title, const Func_Arg* const args)
     return SUCCESS;
   }   
 
-
+  
   /*not a server function*/
   /*arguments must be of the same type*/
   int par_number;
@@ -311,12 +312,14 @@ correct_func(const char* const f_title, const Func_Arg* const args)
      return FAILURE; 
   }
 
+
   /*if the below code is being executed, it means*/
   /*that all parameters are of the same type. Par number is known. Look for function*/
   const Func_Tab_Node* const function = get_function(f_title, par_number); /*get a pointer to the function*/
-  
+   
   if(!function)
   {
+    printf("\n%s has not been found in the function table\n", f_title);
     return FAILURE; /*no such function*/
   }
 

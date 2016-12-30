@@ -48,6 +48,8 @@
 
 "//".*\n /*only one type of comments*/
 
+"#".*\n /*include is handled by the preprocessor*/
+
 [ \t] /* ignore whitespace */
 
 \\\n { printf("c> "); } /* ignore line continuation */

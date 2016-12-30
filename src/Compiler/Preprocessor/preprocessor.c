@@ -2,7 +2,7 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <string.h> 
-# include "../Parser_Code/symbol_table.c" 
+# include "../Includes/symbol_table.h" 
 # include "../Includes/preprocessor.h"
 
 
@@ -646,20 +646,3 @@ preprocess_file(const char* const filename)
   return status; /*successfully included all the files*/
  
 }
-
-
-int
-main(int argc, char** argv)
-{
-
-  if(argc != 2)
-  {
-    printf("\nInappropriate number of parameters. There is/are %i, but 1 is required\n", (argc-1));
-    return 1;
-  }
-
-  return preprocess_file(argv[1]);
- 
-}
-
-

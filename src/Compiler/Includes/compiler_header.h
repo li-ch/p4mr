@@ -36,9 +36,9 @@ typedef struct func_temp Func_JS; /* function that stores some data relationship
 *   that is created and passed to the next stage of the compiler (placement).
 **/
 struct param_node {
-  char* m_dep_label;  /* dependency label */
-  char* m_dep_type;   /* dependency type */
-  Param_Node* m_next; /* next param in the dependency list */   
+  char* m_dep_label;      /* dependency label */
+  char* m_dep_property;   /* dependency property */
+  Param_Node* m_next;     /* next param in the dependency list */   
 
 };
  

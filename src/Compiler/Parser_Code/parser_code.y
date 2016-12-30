@@ -3,7 +3,7 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include "Includes/compiler_header.h"
-//# include "Preprocessor/preprocessor_parser.tab.c" 
+# include "Includes/preprocessor.h" 
 
 
 Program* root; /*global reference to the AST*/
@@ -107,6 +107,14 @@ int main(int argc, char** argv)
    return 1;
  }
 
+ /*initialize the tables*/
+ init_tables();
+
+ if(preprocess_file(argv[1]) == FAILURE)
+ {
+  return 1;
+ }
+
  FILE* file = fopen(argv[1], "r");
  if(!file) 
  {
@@ -119,7 +127,6 @@ int main(int argc, char** argv)
  root = malloc(sizeof(Program));
  root->m_title = malloc(sizeof(char) +  strlen(argv[1]));
  strcpy(root->m_title, argv[1]);
- init_tables();
  /*initialization ends here*/
 
  printf("\n\n###### Parsing and building the dependency list for \"%s\" begins now... ######\n\n", argv[1]);
