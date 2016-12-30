@@ -54,10 +54,7 @@ newarglist(Symbol* pass_sym, Func_Arg* next_arg)
      return arg;
   }
 
-  printf("newarglist: before calling the reference to the table\n");
   const Symbol* const sym_ref = lookup(pass_sym->m_name);
-  
-  printf("newarglist: lookup has been called\n");
  
   if(sym_ref)
   { 
@@ -190,7 +187,7 @@ new_func_type(Symbol* func_name, Symbol* d_type, Func_Arg* args)
   /*first check for the function. If it has been defined and its prototype is correct*/
   if(correct_func(func_name->m_name, args) == FAILURE)
   {
-    yyerror("function '%s' has not been defined before", func_name->m_name);
+    printf("***function '%s' has not been defined before***\n", func_name->m_name);
     exit(0);
   }  
 
@@ -205,6 +202,7 @@ new_func_type(Symbol* func_name, Symbol* d_type, Func_Arg* args)
   /*copy name and types*/
   ptr->m_title = func_name->m_name;
   ptr->m_data_type = d_type->m_name;
+  ptr->m_data = d_type->m_data; /*real data value is needed for later computation*/
   ptr->m_param = convert_arguments(args); /*returs a linked-list of dependencies*/
 
   /*delete symbols*/
@@ -218,6 +216,7 @@ new_func_type(Symbol* func_name, Symbol* d_type, Func_Arg* args)
 Func_JS* 
 new_func_no_type(Symbol* func_name, Func_Arg* args)
 {
+
   Symbol* sym = malloc(sizeof(Symbol)); /*convert a data type to a string*/
   
   if(!sym)
@@ -225,8 +224,13 @@ new_func_no_type(Symbol* func_name, Func_Arg* args)
     yyerror("out of memory");
     exit(0);
   }  
+  
+  const Symbol* const argument = lookup(args->m_id->m_name);
+  if(!argument) { printf("\nLabel '%s' has not been defined before.\n", args->m_id->m_name); exit(0); }
 
-  const Data_Type temp_type = args->m_id->m_data; /* data type for comparison */
+
+  printf("\nFound an argument: %s <%i>\n", argument->m_name, argument->m_data);
+  const Data_Type temp_type = argument->m_data; /* data type for comparison */
   sym->m_data = temp_type;
 
   int index;  
@@ -235,6 +239,7 @@ new_func_no_type(Symbol* func_name, Func_Arg* args)
   {
     if(DATA_TYPE_VALUES[index] == temp_type)
     {
+      printf("\nFound a matching data type in new_func_no_type\n");
       sym->m_name = malloc(sizeof(char) + strlen(DATA_TYPES[index]));
       
       if(!sym->m_name)
@@ -267,6 +272,14 @@ Stmt_Node*
 new_statement(Symbol* label, Func_JS* func)
 {
 
+  /*first check if the label has not been defined before*/
+  if(label && (label->m_data = func->m_data) && add_label(label) == FAILURE)
+  {
+    /*has been defined before*/
+     printf("\nRe-definition of the label '%s'.\n", label->m_name);
+     exit(0);
+  }
+
   Stmt_Node* dep = malloc(sizeof(Stmt_Node));
   
    if(!dep || !func)
@@ -278,12 +291,21 @@ new_statement(Symbol* label, Func_JS* func)
   dep->m_index = get_statement_index(); 
   dep->m_data_type = func->m_data_type;
   dep->m_func = func->m_title;
-  dep->m_label = (label != NULL) ? label->m_name : NULL; /* symbol might be NULL if the statement only contains a function */
+  
+  /* symbol might be NULL if the statement only contains a function */
+  if(label)
+  {
+    dep->m_label = label->m_name;
+    free(label); 
+  }
+  else{
+    dep->m_label = malloc(sizeof(char) * 2);
+    strcpy(dep->m_label, ""); /*copy empty string*/
+  }
+
   dep->m_dep = func->m_param; /* copy dependencies by just reassigning pointers */
 
-  /*since label and func won't be needed anymore, delete them*/
-  if(label){ free(label); label = NULL; }
-  
+  /*since func won't be needed anymore, delete it*/  
   free(func);
   func = NULL;
 
@@ -292,6 +314,27 @@ new_statement(Symbol* label, Func_JS* func)
  
 } 
 
+
+/**
+* Since bison allows to build a reverse
+* linked-list, it is needed to find the end
+* of the created list and return it as it actually
+* points at the first statement.
+*/
+Dep_Node* 
+get_begin(Dep_Node* const rev_begin)
+{
+ Dep_Node* iter = rev_begin;
+ 
+ /* iterate through the entire list and return */
+ /* a pointer to the last node */
+ while(iter->m_next)
+ {
+   iter = iter->m_next;
+ }
+
+  return iter;
+}
 
 /**
 * Deallocates the list of dependencies
@@ -329,7 +372,7 @@ delete_list(Dep_Node* dep)
   while(ptr)
   {
    prev = ptr;
-   ptr = ptr->m_next;
+   ptr = ptr->m_prev;
    /*delete all the items*/
    free(prev->m_stmt->m_func);
    free(prev->m_stmt->m_data_type);
@@ -440,7 +483,7 @@ display_dependency_list(const Program* const head)
    
    print_stmt(ptr->m_stmt); /*print a statement*/  
    
-   if(ptr->m_next) 
+   if(ptr->m_prev) 
    {
      printf("\t\t},\n"); /*print a new line*/
    }
@@ -450,7 +493,7 @@ display_dependency_list(const Program* const head)
      break; /*done printing*/
    }
 
-   ptr = ptr->m_next; /*update the pointer*/
+   ptr = ptr->m_prev; /*update the pointer*/
   }
 
   printf("\t]\n");

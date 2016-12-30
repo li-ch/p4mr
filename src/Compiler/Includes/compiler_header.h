@@ -53,6 +53,7 @@ struct stmt_node {
 struct func_temp {     
   char* m_title;        /* function name */
   char* m_data_type;   /* string that points to the data type this function works with */
+  Data_Type m_data;    /*the value of the data type*/
   Param_Node* m_param; /* a list of paramters for a JSOn array */  
 };
 
@@ -61,6 +62,7 @@ struct func_temp {
 struct dep_node {
   Stmt_Node* m_stmt;
   Dep_Node* m_next;
+  Dep_Node* m_prev;
 };
 
 
@@ -78,6 +80,9 @@ Func_JS* new_func_type(Symbol* func_name, Symbol* d_type, Func_Arg* arg); /* cre
 Func_JS* new_func_no_type(Symbol* func_name, Func_Arg* arg); /* same as above, but this function deducts function type from the params */
 
 Stmt_Node* new_statement(Symbol* label, Func_JS* func); /* creates a JSON interface that stores all the information needed to parse this interface to a JSON object. Also, the returned strurcture can be viewed as a statement/node in a dependency graph. */
+
+
+Dep_Node* get_begin(Dep_Node* const rev_begin); /*this function traverses the linked-list and returns a pointer to the first stmt*/
 
 void deallocate_dependency_list(Program*); /* deletes the linked list */
 void display_dependency_list(const Program* const); /* dsiplays the dependency list */

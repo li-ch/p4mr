@@ -49,7 +49,7 @@ init_tables ()
 {
   init_function_table();
   init_label_table();
-  init_server_functions();
+ // init_server_functions();
 }
 
 
@@ -214,7 +214,7 @@ get_function(const char* const f_title, const int par_num)
   const Func_Tab_Node* cur = function_table[tab_index];
    
 
-  while(cur != NULL) 
+  while(cur) 
   { // traverse the linked list
      if(cur->m_key && !strcmp(cur->m_key, f_title) && cur->m_par_num == par_num)  
      { 
