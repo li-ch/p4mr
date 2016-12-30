@@ -3,5 +3,6 @@ A := map<uint64_t>("IP_ADDDRESS_OF_A"); // many many words
 B := map<uint64_t>("IP_ADDRESS_OF_B");
 
 C := sum(A, B);
+D := sum(C, B);
 
-store(A, "IP_ADDRESS_SOURCE");
+store(D, "IP_ADDRESS_SOURCE");

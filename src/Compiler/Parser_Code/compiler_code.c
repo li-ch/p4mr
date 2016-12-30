@@ -410,6 +410,101 @@ deallocate_dependency_list(Program* head)
 } 
 
 
+/**
+* Helper function for
+* writing a statement to a
+* JSON file.
+*/
+static void
+write_stmt(const Stmt_Node* const stmt, FILE* const js_file)
+{
+
+ /*create a JSON object*/
+ fprintf(js_file, "\n\t{\n");
+ 
+ /*JSON interface*/
+ fprintf(js_file, "\t\t\"index\"   :    \"%i\",\n", stmt->m_index);
+ fprintf(js_file, "\t\t\"type\"    :    \"%s\",\n", stmt->m_data_type);
+ fprintf(js_file, "\t\t\"func\"    :    \"%s\",\n", stmt->m_func);
+ fprintf(js_file, "\t\t\"label\"   :    \"%s\",\n", stmt->m_label);
+ 
+ /*print a param array*/
+ fprintf(js_file, "\t\t\"params\"  :     [\n");
+ 
+ const Param_Node* params = stmt->m_dep;
+ 
+ while(params)
+ {
+   fprintf(js_file, "\t\t\t{\n");
+   fprintf(js_file, "\t\t\t\t\"label\"  :  \"%s\",\n", params->m_dep_label);
+   fprintf(js_file, "\t\t\t\t\"property\"  :  \"%s\"\n", params->m_dep_property);
+   
+   /*this is used for nice printing*/
+   if(params->m_next) /*there is more*/
+   {
+       fprintf(js_file, "\t\t\t},\n");
+   }
+   else /*no more params*/
+   {
+       fprintf(js_file, "\t\t\t}\n");
+       break;
+   }
+
+   params = params->m_next; /*move to the next param*/
+ }
+   
+  fprintf(js_file, "\t\t]\n");
+
+}
+
+
+/**
+* This function takes a
+* pointer to the program and
+* creates a JSON file which 
+* stores the dependency list
+* of the program.
+**/
+void
+create_JSON(const Program* const program)
+{
+
+  if(!program) { printf("\n[]\n"); return; } /* nothing to print */
+  
+  FILE* js_file = fopen("dependency_graph.json", "w+"); /*open a new file and delete the previous content*/
+  if(!js_file)
+  {
+    printf("\n*** Cannot create a JSON file ***\n");
+    exit(0);
+  }
+
+  const Dep_Node* ptr = program->m_begin;
+  
+  fprintf(js_file, "[");
+  
+  while(ptr)
+  {
+   
+   write_stmt(ptr->m_stmt, js_file); /*print a statement*/  
+   
+   if(ptr->m_prev) 
+   {
+     fprintf(js_file, "\t},\n"); /*write a new line*/
+   }
+   else 
+   {
+     fprintf(js_file, "\t}\n"); /*write a new line*/ 
+     break; /*done printing*/
+   }
+
+   ptr = ptr->m_prev; /*update the pointer*/
+  }
+
+  fprintf(js_file, "]\n");
+
+  fclose(js_file); /*close the file*/
+}
+
 /* -************** Below code is for testing only ***************-*/
 
 
@@ -422,7 +517,7 @@ deallocate_dependency_list(Program* head)
 static void
 print_stmt(const Stmt_Node* const stmt)
 {
-  /*print a strictire as a JSON object*/
+  /*print a structure as a JSON object*/
  printf("\n\t\t{\n");
  
  /*JSON interface*/

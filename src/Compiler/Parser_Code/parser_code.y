@@ -148,6 +148,7 @@ int main(int argc, char** argv)
 
  /*print the dependencies first and then delete them */
  display_dependency_list(root);
+ create_JSON(root); /* create a JSON file */
  deallocate_dependency_list(root);
  
 

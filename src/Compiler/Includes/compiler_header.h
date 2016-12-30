@@ -84,6 +84,8 @@ Stmt_Node* new_statement(Symbol* label, Func_JS* func); /* creates a JSON interf
 
 Dep_Node* get_begin(Dep_Node* const rev_begin); /*this function traverses the linked-list and returns a pointer to the first stmt*/
 
+void create_JSON(const Program* const); /*function creates a JSON file and writes the dependency list to it*/
+
 void deallocate_dependency_list(Program*); /* deletes the linked list */
 void display_dependency_list(const Program* const); /* dsiplays the dependency list */
 
