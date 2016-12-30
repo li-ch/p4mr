@@ -23,7 +23,7 @@
 
 
 \" {BEGIN(PATH_DEF);}
-<PATH_DEF>([-]+|[_a-zA-z]+) { yylval.symbol = malloc(sizeof(Symbol)); yylval.symbol->m_data = PATH_STRING; yylval.symbol->m_name = malloc(strlen(yytext) + sizeof(char)); strcpy(yylval.symbol->m_name, yytext); add_symbol(yylval.symbol); return NAME;}
+<PATH_DEF>([-]+|[_a-zA-z]+) { yylval.symbol = malloc(sizeof(Symbol)); yylval.symbol->m_data = PATH_STRING; yylval.symbol->m_name = malloc(strlen(yytext) + sizeof(char)); strcpy(yylval.symbol->m_name, yytext); add_label(yylval.symbol); return NAME;}
 <PATH_DEF>\"       {BEGIN(INITIAL);}
 <PATH_DEF>[\n \t]+ {printf("%d: No line breaks in the data path\n", yylineno); return 0;}
 <PATH_DEF><<EOF>>  {printf("%d: No line breaks in the data path\n", yylineno); return 0;}

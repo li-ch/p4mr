@@ -17,9 +17,14 @@ typedef enum {
 
 
 #define NUMBER_OF_DATA_TYPES 9
-const char* DATA_TYPES[NUMBER_OF_DATA_TYPES] = {"uint8_t", "int8_t", "uint16_t", "int16_t", "uint32_t", "int32_t", "uint64_t", "int64_t", "path_string"};
-const Data_Type DATA_TYPE_VALUES[NUMBER_OF_DATA_TYPES] = {UINT_8, INT_8, UINT_16, INT_16, UINT_32, INT_32, UINT_64, INT_64, PATH_STRING};
 
+/* boolean flags used for status checking */
+extern const int SUCCESS;
+extern const int FAILURE;
+
+/* data type arrays for converting data types into strings */ 
+extern const char* DATA_TYPES[NUMBER_OF_DATA_TYPES];
+extern const Data_Type DATA_TYPE_VALUES[NUMBER_OF_DATA_TYPES];
 
 
 #endif

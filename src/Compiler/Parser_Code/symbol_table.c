@@ -2,8 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "../Includes/symbol_table.h"
-
-
+#include "../Includes/data_types.c"
 
 /**
 * This function initializes a predefined list of

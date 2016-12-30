@@ -1,4 +1,4 @@
-/* parser for AST */
+/* parser for a dependency list */
 %{
 # include <stdio.h>
 # include <stdlib.h>
@@ -13,7 +13,8 @@ Program* root; /*global reference to the AST*/
 %union {
  Symbol* symbol; /* which symbol */
  Func_Arg* arg; /*argument list*/
- Dep_Node* statement;
+ Dep_Node* depend;
+ Stmt_Node* statement;
  Func_JS* function;
  Program* program; /*the pointer that points to the root of the tree*/
 }
@@ -26,7 +27,8 @@ Program* root; /*global reference to the AST*/
 %token ASSIGN ":="
 
 
-%type <statement> stmt stmtlist
+%type <statement> stmt 
+%type <depend> stmtlist
 %type <function> func expr
 %type <arg> symlist
 %type <program> beg_compile
@@ -46,17 +48,19 @@ beg_compile: stmtlist { printf("beg_compile:\n"); root->m_begin = $1; }
 stmtlist: stmtlist stmt { printf("stmtlist: stmtlist stmt\n"); 
                           if($1) /*there are statements before this*/
                           {
-                            $$ = malloc(sizeof(Tree));
-                            $$->m_node = $2;
-                            $$->m_next = $1;
+                            /*such an order of assignments preserve the linked-list order*/
+                            $$ = malloc(sizeof(Dep_Node));
+                            $$->m_stmt = $2;
+                            $$->m_next = NULL;
+                            $1->m_next = $$;
          
                           }
                           else
                           {
                             /*first node, means that this has to be initialized as follows*/
-                            $$ = malloc(sizeof(Tree));
+                            $$ = malloc(sizeof(Dep_Node));
                             $$->m_next = NULL;
-                            $$->m_node = $2; /*point at the new statement*/
+                            $$->m_stmt = $2; /*point at the new statement*/
                           }
                         } 
         | %empty        { printf("stmtlist: empty\n"); $$ = NULL; }
@@ -64,13 +68,13 @@ stmtlist: stmtlist stmt { printf("stmtlist: stmtlist stmt\n");
 
 
 
-stmt: NAME ":=" expr { printf("stmt: NAME := expr\n"); $$ = new_dependency($1, $3); }
-    | func           { printf("stmt: func\n"); $$ = new_dependency(NULL, $1); }
+stmt: NAME ":=" expr { printf("stmt: NAME := expr\n"); $$ = new_statement($1, $3); }
+    | func           { printf("stmt: func\n"); $$ =  new_statement(NULL, $1); }
     ;
 
 
 
-expr: NAME '<' VAR_TYPE '>' '(' symlist ')' ';' { printf("expr: NAME <VAR_TYPE> (symlist);\n"); $$ = new_func_type($1, &$3, $6); }
+expr: NAME '<' VAR_TYPE '>' '(' symlist ')' ';' { printf("expr: NAME <VAR_TYPE> (symlist);\n"); $$ = new_func_type($1, $3, $6); }
     | func                                      { printf("expr: func\n"); $$ = $1; }
     ;
 
@@ -80,9 +84,9 @@ func: NAME '(' symlist ')' ';' { printf("func: NAME (symlist);\n"); $$ = new_fun
     ;
 
 
-symlist: NAME { printf("symlist: NAME\n"); $$ = newarglist($1, NULL); }
-       | NAME ',' symlist { printf("symlist: NAME, symlist\n"); $$ = newarglist($1, $3); } }
-       | %empty { printf("symlist: empty\n"); $$ = newarglist(NULL, NULL); }
+symlist: NAME             { printf("symlist: NAME\n"); $$ = newarglist($1, NULL); }
+       | NAME ',' symlist { printf("symlist: NAME, symlist\n"); $$ = newarglist($1, $3); } 
+       | %empty           { printf("symlist: empty\n"); $$ = newarglist(NULL, NULL); }
        ;
 
 
@@ -114,12 +118,12 @@ int main(int argc, char** argv)
  
  /*initialize root for storing the tilte of the progrma*/
  root = malloc(sizeof(Program));
- root->m_title = malloc(sizeof(char) * strlen(argv[1]));
+ root->m_title = malloc(sizeof(char) +  strlen(argv[1]));
  strcpy(root->m_title, argv[1]);
  init_tables();
  /*initialization ends here*/
 
- printf("\n\n###### Parsing and building of the AST for \"%s\" begins now... ######\n\n", argv[1]);
+ printf("\n\n###### Parsing and building of the dependency list for \"%s\" begins now... ######\n\n", argv[1]);
 
  /*parse the entire file*/
  do
@@ -132,9 +136,9 @@ int main(int argc, char** argv)
  printf("\n###### Done! ######\n\n");
  fclose(file); /* close the source file */ 
 
- /*print an AST first and then delete it */
- print_program(root);
- deallocate_tree(root);
+ /*print the dependencies first and then delete them */
+ display_dependency_list(root);
+ deallocate_dependency_list(root);
  
 
  return 0;

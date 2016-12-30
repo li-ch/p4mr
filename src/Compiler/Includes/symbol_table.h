@@ -3,10 +3,6 @@
 
 #include "data_types.h"
 
-/* boolean flags used for status checking */
-const int SUCCESS = 1;
-const int FAILURE = 0;
- 
 
 /* A table of symbols represents a structure
  * that keeps track of declared variables (labels).
