@@ -32,7 +32,7 @@ E := SUM(C, D);
 ```
 
 
-### Topology (example, for the actual case look at mininet/topo.txt file)
+### Topology (example, for the actual case check mininet_setup/topo.txt file)
 
       h1               h4
         \             /
