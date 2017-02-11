@@ -17,8 +17,8 @@ limitations under the License.
 #define PREAMBLE_SIZE 64
 #define APP_BITS 16 
 #define INT_BITS 64 
-#define SWITCH_ID 0x02 
-#define NEXT_HOP 2
+#define SWITCH_ID 0x01 
+#define NEXT_HOP 4
 
 
 /***********************
@@ -35,6 +35,13 @@ header_type data_header_t {
 
 header data_header_t data_header;
 
+header_type toAddHeader_t {
+    fields {
+        myresult       : 8;
+    }
+}
+
+header toAddHeader_t toAddHeader;
 
 /***********************
    Parser Definition
@@ -74,19 +81,31 @@ action _drop() {
     drop();
 }
 
-action set_port() {
-    modify_field (standard_metadata.egress_spec, NEXT_HOP); 
+action reset_port(next_hop) {
+    /*
+    register_read (egress_metadata.temp_result, my_result, 0x01); 
+    add_to_field (egress_metadata.temp_result, data_header.value); 
+    register_write (my_result, 0x01, egress_metadata.temp_result); 
+    */
+    my_update(data_header.value);
+
+    modify_field (data_header.value, egress_metadata.temp_result);
+    // modify_field (data_header.value, 15);
+    modify_field (standard_metadata.egress_spec, next_hop); 
 }
 
 table forward_table {
-   actions {
-      set_port;
-   }
+    reads {
+        data_header.application_id : exact;
+    }
+    actions {
+       reset_port;
+    }
 }
 
-action my_update() {
+action my_update(next_val) {
     register_read (egress_metadata.temp_result, my_result, 0x00); 
-    add_to_field (egress_metadata.temp_result, data_header.value); 
+    add_to_field (egress_metadata.temp_result, next_val); 
     register_write (my_result, 0x00, egress_metadata.temp_result); 
 }
 

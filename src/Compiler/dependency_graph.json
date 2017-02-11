@@ -1,0 +1,78 @@
+[
+	{
+		"index"   :    "1",
+		"type"    :    "uint64_t",
+		"func"    :    "map",
+		"label"   :    "A",
+		"params"  :     [
+			{
+				"label"  :  "IP_ADDDRESS_OF_A",
+				"property"  :  "path_label"
+			}
+		]
+	},
+
+	{
+		"index"   :    "2",
+		"type"    :    "uint64_t",
+		"func"    :    "map",
+		"label"   :    "B",
+		"params"  :     [
+			{
+				"label"  :  "IP_ADDRESS_OF_B",
+				"property"  :  "path_label"
+			}
+		]
+	},
+
+	{
+		"index"   :    "3",
+		"type"    :    "uint64_t",
+		"func"    :    "sum",
+		"label"   :    "C",
+		"params"  :     [
+			{
+				"label"  :  "A",
+				"property"  :  "data_label"
+			},
+			{
+				"label"  :  "B",
+				"property"  :  "data_label"
+			}
+		]
+	},
+
+	{
+		"index"   :    "4",
+		"type"    :    "uint64_t",
+		"func"    :    "sum",
+		"label"   :    "D",
+		"params"  :     [
+			{
+				"label"  :  "C",
+				"property"  :  "data_label"
+			},
+			{
+				"label"  :  "B",
+				"property"  :  "data_label"
+			}
+		]
+	},
+
+	{
+		"index"   :    "5",
+		"type"    :    "uint64_t",
+		"func"    :    "store",
+		"label"   :    "",
+		"params"  :     [
+			{
+				"label"  :  "D",
+				"property"  :  "data_label"
+			},
+			{
+				"label"  :  "IP_ADDRESS_SOURCE",
+				"property"  :  "path_label"
+			}
+		]
+	}
+]

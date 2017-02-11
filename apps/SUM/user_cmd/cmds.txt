@@ -1,0 +1,6 @@
+A := store<uint_64>("ip_h1:path_A");
+B := store<uint_64>("ip_h2:path_B");
+C := store<uint_64>("ip_h3:path_C");
+
+D := SUM(A, B);
+E := SUM(C, D);

@@ -1,0 +1,58 @@
+[
+    {
+        "index"  : "1",
+        "type"   : "uint_64",
+        "func"   : "map",
+        "label"  : "A",
+        "params" : [
+            {
+                "label": "ip1:path1",
+                "property": "path_label"
+            }
+        ]
+    },
+    {
+        "index"  : "2",
+        "type"   : "uint_64",
+        "func"   : "map",
+        "label"  : "B",
+        "params" : [
+            {
+                "label": "ip2:path2",
+                "property": "path_label"
+            }
+        ]
+    },
+    {
+        "index"  : "3",
+        "type"   : "uint_64",
+        "func"   : "sum",
+        "label"  : "C",
+        "params" : [
+            {
+                "label": "A",
+                "property": "data_label"
+            },
+            {
+                "label": "B",
+                "property": "data_label"
+            }
+        ]
+    },
+    {
+        "index"  : "4",
+        "type"   : "uint_64",
+        "func"   : "sum",
+        "label"  : "D",
+        "params" : [
+            {
+                "label": "A",
+                "property": "data_label"
+            },
+            {
+                "label": "C",
+                "property": "data_label"
+            }
+        ]
+    }
+]

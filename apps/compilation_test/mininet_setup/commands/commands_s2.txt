@@ -1,0 +1,4 @@
+table_set_default update_table _drop
+table_add update_table my_update
+table_add forward_table reset_port 0 => 2
+table_add forward_table reset_port 5 => 2

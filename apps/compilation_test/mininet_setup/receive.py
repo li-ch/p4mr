@@ -14,13 +14,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from scapy.all import sniff, sendp
-from scapy.all import Packet
-from scapy.all import ShortField, IntField, LongField, BitField
+#from scapy.all import sniff, sendp
+from scapy.all import sniff
+#from scapy.all import Packet
+#from scapy.all import ShortField, IntField, LongField, BitField
+#from datetime import datetime
 
 import re
 import sys
-import struct
+#import struct
+
+LOG_FILE = "myresults.txt"
+def record_log(log_file, content):
+    with open(log_file, "a") as fstream:
+        fstream.write(content + "\n")
+
+def str2binary(character):
+    bin_original = bin(ord(character))[2:]
+    length = len(bin_original)
+    return '0'*(8-length) + bin_original
+
+def parse_hex(hex_str):
+    parsed_msg = ""
+    hex_units = re.findall('0x[0-9a-fA-F][0-9a-fA-F]', hex_str)
+    for c in hex_units:
+        parsed_msg += chr( int(c, 0) )
+    return parsed_msg
+
+def assemble_fields(fields):
+    return " | ".join( [str(ord(f)) for f in fields] )
+
 
 def handle_pkt(pkt):
     pkt = str(pkt)
@@ -33,23 +56,22 @@ def handle_pkt(pkt):
     if num_valid != 0:
         print "received incorrect packet"
     """
-    msg = pkt[8:]
-    print msg
+    msg = pkt[10:]
+    bitstream = "".join([str2binary(c) for c in msg])
+    print bitstream
+    print str(int(bitstream, 2))
     """
+    print int(msg)
     print "The LENGTH of this PKT", len(msg)
     print bin(ord(msg[0]))
     print parse_hex(msg)
     """
     sys.stdout.flush()
-
-def parse_hex(hex_str):
-    parsed_msg = ""
-    hex_units = re.findall('0x[0-9a-fA-F][0-9a-fA-F]', hex_str)
-    for c in hex_units:
-        parsed_msg += chr( int(c, 0) )
-    return parsed_msg
+    #record_log(LOG_FILE, str(int(msg)))
 
 def main():
+    #record_log(LOG_FILE, "\n" )
+    #record_log(LOG_FILE, datetime.now().strftime('%Y-%m-%d %H:%M:%S') )
     sniff(iface = "eth0",
           prn = lambda x: handle_pkt(x))
 

@@ -1,0 +1,8 @@
+sudo killall lt-simple_switch
+sudo mn -c
+sudo rm -fr ../p4srcs/
+sudo rm -fr ./commands/
+sudo rm -fr ./*pcap
+sudo rm -fr ./switch_jsons/
+./gen_routing_table.py
+sudo rm -fr ./*pyc

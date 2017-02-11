@@ -1,5 +1,19 @@
 # Implementation of P4MR with compilation
 
+### To Run:
+```
+cd mininet_setup;
+./run_demo.sh
+```
+Then execute mininet commands to test, for example:
+```
+mininet> h4 ./receive.py > myresults.txt &    // listen on host4
+                                              // record pkts in myresults.txt
+mininet> h1 ./send.py h1 h4 0                 // send pkts from h1 to h4 with flag 0
+```
+
+
+
 ### User Commands:
 ```
 A := store<uint_64>("ip_h1:path_A");

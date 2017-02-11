@@ -17,11 +17,14 @@
 from scapy.all import sendp
 from scapy.all import Packet
 #from scapy.all import ShortField, IntField, LongField, BitField
-from scapy.all import LongField
+from scapy.all import  LongField
+#from read_topo import read_topo
 
-import networkx as nx
-
+import time
 import sys
+import os
+
+DATA_DIR = "../data_src"
 
 class SrcRoute(Packet):
     name = "SrcRoute"
@@ -29,22 +32,24 @@ class SrcRoute(Packet):
         LongField("preamble", 0),
     ]
 
-def read_topo():
-    nb_hosts = 0
-    nb_switches = 0
-    links = []
-    with open("topo.txt", "r") as f:
-        line = f.readline()[:-1]
-        w, nb_switches = line.split()
-        assert(w == "switches")
-        line = f.readline()[:-1]
-        w, nb_hosts = line.split()
-        assert(w == "hosts")
-        for line in f:
-            if not f: break
-            a, b = line.split()
-            links.append( (a, b) )
-    return int(nb_hosts), int(nb_switches), links
+def data_allocation():
+    """This is the test version to apply a fixed allocation
+       Future version should get allocation information from
+       the ast.json
+    """
+    data_srcs = {
+                    "A": "3",
+                    "B": "3",
+                    "C": "4"
+            }
+    return data_srcs
+
+def data_loading(file_path):
+    data = []
+    with open(file_path, 'r') as fstream:
+        for line in fstream:
+            data += line.strip().split(' ')
+    return data
 
 def ascii_encode(msg):
     encoded = ''
@@ -59,74 +64,65 @@ def flag_assemble(pkt_type):
         return chr(0) + chr(1)
     elif pkt_type == '2':
         return chr(0) + chr(2)
+    elif pkt_type == '5':
+        return chr(0) + chr(5)
     else:
         print "Unexpected error:", sys.exc_info()[0]
         raise
 
 def msg_assemble(msg, fix_size):
+    assert(fix_size % 8, 0)
+    bytes_num = fix_size / 8
     l = bin(int(msg))[2:]
     bits_num = len(l)
     # Paddings
     if bits_num < fix_size:
         l = '0'*(fix_size - bits_num) + l
-    return l
+    i = 1
+    pkt_msg = ""
+    while i <= bytes_num:
+        pkt_msg += chr( int(l[(i-1)*8: i*8], 2) )
+        i += 1
+    return pkt_msg
 
 
 def main():
+    data_srcs = data_allocation()
+    """
     if len(sys.argv) != 4:
         print "Usage: send.py [this_host] [target_host] [pkt_type]"
         print "For example: send.py h1 h3 0"
         sys.exit(1)
-
     src, dst, pkt_type = sys.argv[1:]
+    """
+    # Start operations
+    for label in data_srcs:
+        file_path = DATA_DIR + os.sep + label + ".txt"
+        int_values = data_loading(file_path)
+        init_appID = data_srcs[label]
+        for v in int_values:
+            p = SrcRoute() / \
+                    msg_assemble(init_appID, 8) / \
+                    msg_assemble(init_appID, 8) / \
+                    msg_assemble('0', 8) / \
+                    msg_assemble(v, 64)
 
-    nb_hosts, nb_switches, links = read_topo()
+            print p.show()
+            sendp(p, iface = "eth0")
+            time.sleep(0.1)
+            # print msg
 
-    port_map = {}
-
-    for a, b in links:
-        if a not in port_map:
-            port_map[a] = {}
-        if b not in port_map:
-            port_map[b] = {}
-
-        assert(b not in port_map[a])
-        assert(a not in port_map[b])
-        port_map[a][b] = len(port_map[a]) + 1
-        port_map[b][a] = len(port_map[b]) + 1
-
-
-    G = nx.Graph()
-    for a, b in links:
-        G.add_edge(a, b)
-
-    shortest_paths = nx.shortest_path(G)
-    shortest_path = shortest_paths[src][dst]
-
-    print "path is:", shortest_path
-
-    port_list = []
-    first = shortest_path[1]
-    for h in shortest_path[2:]:
-        port_list.append(port_map[first][h])
-        first = h
-
-    print "port list is:", port_list
-
-    port_str = ""
-    for p in port_list:
-        port_str += chr(p)
-
-    while(1):
-        msg = raw_input("What do you want to send (integer only): ")
-
+    # Start results collection
+    for appID in set(data_srcs.values()):
         p = SrcRoute() / \
-                flag_assemble(pkt_type) / \
-                msg_assemble(msg, 64)
+                    msg_assemble(appID, 8) / \
+                    msg_assemble(appID, 8) / \
+                    msg_assemble('1', 8) / \
+                    msg_assemble('0', 64)
 
         print p.show()
         sendp(p, iface = "eth0")
-        # print msg
+        time.sleep(0.1)
 
 if __name__ == '__main__':
     main()

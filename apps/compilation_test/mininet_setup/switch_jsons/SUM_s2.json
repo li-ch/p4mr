@@ -164,42 +164,8 @@
     "meter_arrays": [],
     "actions": [
         {
-            "name": "set_port",
-            "id": 0,
-            "runtime_data": [],
-            "primitives": [
-                {
-                    "op": "modify_field",
-                    "parameters": [
-                        {
-                            "type": "field",
-                            "value": [
-                                "standard_metadata",
-                                "egress_spec"
-                            ]
-                        },
-                        {
-                            "type": "hexstr",
-                            "value": "0x4"
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "_drop",
-            "id": 1,
-            "runtime_data": [],
-            "primitives": [
-                {
-                    "op": "drop",
-                    "parameters": []
-                }
-            ]
-        },
-        {
             "name": "my_update",
-            "id": 2,
+            "id": 0,
             "runtime_data": [],
             "primitives": [
                 {
@@ -262,6 +228,45 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "reset_port",
+            "id": 1,
+            "runtime_data": [
+                {
+                    "name": "next_hop",
+                    "bitwidth": 9
+                }
+            ],
+            "primitives": [
+                {
+                    "op": "modify_field",
+                    "parameters": [
+                        {
+                            "type": "field",
+                            "value": [
+                                "standard_metadata",
+                                "egress_spec"
+                            ]
+                        },
+                        {
+                            "type": "runtime_data",
+                            "value": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "_drop",
+            "id": 2,
+            "runtime_data": [],
+            "primitives": [
+                {
+                    "op": "drop",
+                    "parameters": []
+                }
+            ]
         }
     ],
     "pipelines": [
@@ -279,12 +284,21 @@
                     "with_counters": false,
                     "direct_meters": null,
                     "support_timeout": false,
-                    "key": [],
+                    "key": [
+                        {
+                            "match_type": "exact",
+                            "target": [
+                                "data_header",
+                                "application_id"
+                            ],
+                            "mask": null
+                        }
+                    ],
                     "actions": [
-                        "set_port"
+                        "reset_port"
                     ],
                     "next_tables": {
-                        "set_port": null
+                        "reset_port": null
                     },
                     "base_default_next": null
                 },
@@ -352,7 +366,7 @@
                             },
                             "right": {
                                 "type": "hexstr",
-                                "value": "0x1"
+                                "value": "0x2"
                             }
                         }
                     },

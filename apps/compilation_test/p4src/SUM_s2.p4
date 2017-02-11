@@ -17,8 +17,8 @@ limitations under the License.
 #define PREAMBLE_SIZE 64
 #define APP_BITS 16 
 #define INT_BITS 64 
-#define SWITCH_ID 0x01 
-#define NEXT_HOP 4
+#define SWITCH_ID 0x02 
+#define NEXT_HOP 2
 
 
 /***********************
@@ -74,13 +74,16 @@ action _drop() {
     drop();
 }
 
-action set_port() {
-    modify_field (standard_metadata.egress_spec, NEXT_HOP); 
+action reset_port(next_hop) {
+    modify_field (standard_metadata.egress_spec, next_hop); 
 }
 
 table forward_table {
+    reads {
+        data_header.application_id : exact;
+    }
    actions {
-      set_port;
+      reset_port;
    }
 }
 

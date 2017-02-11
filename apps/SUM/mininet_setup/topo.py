@@ -20,6 +20,7 @@ from mininet.log import setLogLevel
 from mininet.cli import CLI
 #from mininet.link import TCLink
 
+from read_topo import read_topo
 from p4_mininet import P4Switch, P4Host
 
 import argparse
@@ -50,26 +51,9 @@ class MyTopo(Topo):
         for a, b in links:
             self.addLink(a, b)
 
-def read_topo():
-    nb_hosts = 0
-    nb_switches = 0
-    links = []
-    with open("topo.txt", "r") as f:
-        line = f.readline()[:-1]
-        w, nb_switches = line.split()
-        assert(w == "switches")
-        line = f.readline()[:-1]
-        w, nb_hosts = line.split()
-        assert(w == "hosts")
-        for line in f:
-            if not f: break
-            a, b = line.split()
-            links.append( (a, b) )
-    return int(nb_hosts), int(nb_switches), links
-
 
 def main():
-    nb_hosts, nb_switches, links = read_topo()
+    nb_hosts, nb_switches, links, hosts_set, switches_set = read_topo()
 
     parser = argparse.ArgumentParser(description='Mininet demo')
     parser.add_argument('--behavioral-exe', help='Path to behavioral executable',
@@ -94,9 +78,12 @@ def main():
     for n in xrange(nb_hosts):
         h = net.get('h%d' % (n + 1))
         for off in ["rx", "tx", "sg"]:
-            cmd = "/sbin/ethtool --offload eth0 %s off" % off
-            print cmd
-            h.cmd(cmd)
+            cmd_list = ["/sbin/ethtool --offload eth0 %s off" % off,
+                        "/sbin/ethtool --offload eth1 %s off" % off,
+                        "/sbin/ethtool --offload eth2 %s off" % off]
+            for cmd in cmd_list:
+                print cmd
+                h.cmd(cmd)
         print "disable ipv6"
         h.cmd("sysctl -w net.ipv6.conf.all.disable_ipv6=1")
         h.cmd("sysctl -w net.ipv6.conf.default.disable_ipv6=1")
@@ -109,7 +96,10 @@ def main():
     for i in xrange(nb_switches):
         cmd = [args.cli, "--json", args.json[i],
                "--thrift-port", str(_THRIFT_BASE_PORT + i)]
-        with open("commands.txt", "r") as f:
+        cmd_dir = "commands"
+        switch_name = 's' + str(i+1)
+        cmd_file = cmd_dir + os.sep + "commands_" + switch_name + ".txt"
+        with open(cmd_file, "r") as f:
             print " ".join(cmd)
             try:
                 output = subprocess.check_output(cmd, stdin = f)
